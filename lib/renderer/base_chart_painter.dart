@@ -986,9 +986,65 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算 ATR (Average True Range) 指标
+  /// [period] 默认14 (Wilder平滑)
+  void _computeATR(List<KLineEntity> data, {int period = 14}) {
+    final length = data.length;
+    if (length == 0) return;
+
+    // 存放每条 K 的 TR 值
+    List<double> trArr = List.filled(length, 0);
+
+    // 1) 计算TR
+    // 第0条K线没有前一日close, 通常 TR= high-low
+    if (length > 0) {
+      trArr[0] = data[0].high - data[0].low;
+    }
+    for (int i = 1; i < length; i++) {
+      double high = data[i].high;
+      double low = data[i].low;
+      double prevClose = data[i - 1].close;
+
+      double range1 = high - low;
+      double range2 = (high - prevClose).abs();
+      double range3 = (low - prevClose).abs();
+      double tr = [range1, range2, range3].reduce((a, b) => a > b ? a : b);
+      trArr[i] = tr;
+    }
+
+    // 2) 计算ATR
+    // 第0条 ATR = TR(0)
+    data[0].atr = trArr[0];
+
+    // 如果 length < period，就全部给简单平均 or 直接给TR
+    // 这里演示: 若 i < period，则用简单平均
+    double sumTR = trArr[0];
+    for (int i = 1; i < length; i++) {
+      sumTR += trArr[i];
+      if (i < period) {
+        // i=1~13 => 直接简单平均
+        data[i].atr = sumTR / (i + 1);
+      } else {
+        // i >= period => 用Wilder平滑
+        double prevAtr = data[i - 1].atr ?? 0;
+        // ATR(i)=((prevAtr*(period-1)) + TR(i)) / period
+        double curAtr = (prevAtr * (period - 1) + trArr[i]) / period;
+        // 防止NaN / Infinity
+        if (!curAtr.isFinite) {
+          curAtr = prevAtr;
+        }
+        data[i].atr = curAtr;
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    if (secondaryStates.contains(SecondaryState.ATR)) {
+      _computeATR(datas!, period: 14);
+    }
 
     // 当用户在副图里选了 VORTEX
     if (secondaryStates.contains(SecondaryState.VORTEX)) {
@@ -1055,7 +1111,13 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.VORTEX) {
+        if (st == SecondaryState.ATR) {
+          double? a = item.atr;
+          if (a != null && a.isFinite) {
+            if (a > newMax) newMax = a;
+            if (a < newMin) newMin = a;
+          }
+        } else if (st == SecondaryState.VORTEX) {
           // item.viPlus, item.viMinus
           double? viplus = item.viPlus;
           double? viminus = item.viMinus;

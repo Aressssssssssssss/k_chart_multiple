@@ -1,4 +1,5 @@
 import 'aroon_entity.dart';
+import 'atr_entity.dart';
 import 'candle_entity.dart';
 import 'ichimoku_entity.dart';
 import 'kdj_entity.dart';
@@ -30,4 +31,5 @@ class KEntity
         ICHIMOKUEntity,
         SAREntity,
         AROONEntity,
-        VORTEXEntity {}
+        VORTEXEntity,
+        ATREntiry {}
