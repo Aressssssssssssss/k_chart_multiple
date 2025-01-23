@@ -129,6 +129,8 @@ class ChartColors {
   Color stochDColor = Colors.red;
 
   Color wprColor = Colors.indigo;
+
+  Color demColor = Colors.cyan; // DeMarker线
 }
 
 class ChartStyle {

@@ -3,6 +3,7 @@ import 'adx_entiry.dart';
 import 'aroon_entity.dart';
 import 'atr_entity.dart';
 import 'candle_entity.dart';
+import 'dem_entiry.dart';
 import 'hv_entity.dart';
 import 'ichimoku_entity.dart';
 import 'kdj_entity.dart';
@@ -50,4 +51,5 @@ class KEntity
         ADXEntiry,
         STDEntiry,
         STOCHEntiry,
-        WPREntiry {}
+        WPREntiry,
+        DEMEntiry {}

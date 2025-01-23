@@ -100,6 +100,11 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.DEMARKER:
+        drawLine(lastPoint.dem, curPoint.dem, canvas, lastX, curX,
+            chartColors.demColor);
+        break;
+
       case SecondaryState.WPR:
         // 只是一条线
         drawLine(lastPoint.wpr, curPoint.wpr, canvas, lastX, curX,
@@ -308,6 +313,28 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.DEMARKER:
+        List<TextSpan> spans = [];
+        spans.add(TextSpan(
+          text: "DeM(14)  ",
+          style: getTextStyle(chartColors.defaultTextColor),
+        ));
+        if (data.dem != null) {
+          // 若是 [0,1], 也可 *100 => 0~100
+          spans.add(TextSpan(
+            text: "DeM:${format(data.dem)}  ",
+            style: getTextStyle(chartColors.demColor),
+          ));
+        }
+
+        TextPainter tp = TextPainter(
+          text: TextSpan(children: spans),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.WPR:
         List<TextSpan> spans = [];
         spans.add(

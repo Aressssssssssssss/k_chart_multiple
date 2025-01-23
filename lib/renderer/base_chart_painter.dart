@@ -1528,9 +1528,73 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算 DeMarker 指标 (DeM)，默认周期14
+  /// DeMax(i)= max(High(i)-High(i-1), 0), DeMin(i)= max(Low(i-1)-Low(i), 0)
+  /// DeM(i)= Sum(DeMax,14)/[Sum(DeMax,14)+Sum(DeMin,14)]
+  void _computeDeMarker(List<KLineEntity> data, {int period = 14}) {
+    final length = data.length;
+    if (length < 2) return;
+
+    // 1) 先计算 DeMax / DeMin 数组
+    List<double> deMaxArr = List.filled(length, 0);
+    List<double> deMinArr = List.filled(length, 0);
+
+    // i=0 无法和前一条比，对第0条设为0
+    for (int i = 1; i < length; i++) {
+      double high0 = data[i - 1].high;
+      double high1 = data[i].high;
+      double low0 = data[i - 1].low;
+      double low1 = data[i].low;
+
+      double deMax = 0;
+      if (high1 > high0) {
+        double diff = high1 - high0;
+        if (diff > 0) deMax = diff;
+      }
+      deMaxArr[i] = deMax;
+
+      double deMin = 0;
+      if (low1 < low0) {
+        double diff = low0 - low1;
+        if (diff > 0) deMin = diff;
+      }
+      deMinArr[i] = deMin;
+    }
+
+    // 2) rolling sum of DeMax, DeMin over 'period'
+    //    DeM= sum(DeMax)/ [sum(DeMax)+sum(DeMin)]
+    for (int i = 0; i < length; i++) {
+      if (i < period) {
+        // 数据不足period
+        data[i].dem = 0;
+      } else {
+        double sumMax = 0;
+        double sumMin = 0;
+        int start = i - period + 1;
+        for (int j = start; j <= i; j++) {
+          sumMax += deMaxArr[j];
+          sumMin += deMinArr[j];
+        }
+        double denominator = sumMax + sumMin;
+        double demValue = 0;
+        if (denominator.abs() < 1e-12) {
+          demValue = 0;
+        } else {
+          demValue = sumMax / denominator; // => in [0,1]
+        }
+        data[i].dem = demValue.isFinite ? demValue : 0;
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+    // 如果用户勾选了 DeMarker 指标
+    if (secondaryStates.contains(SecondaryState.DEMARKER)) {
+      _computeDeMarker(datas!, period: 14);
+    }
+
     // 如果副图里包含 WPR
     if (secondaryStates.contains(SecondaryState.WPR)) {
       _computeWPR(datas!, period: 14);
@@ -1650,7 +1714,13 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.WPR) {
+        if (st == SecondaryState.DEMARKER) {
+          double? demVal = item.dem;
+          if (demVal != null && demVal.isFinite) {
+            if (demVal > newMax) newMax = demVal;
+            if (demVal < newMin) newMin = demVal;
+          }
+        } else if (st == SecondaryState.WPR) {
           double? wVal = item.wpr;
           if (wVal != null && wVal.isFinite) {
             // 常见 wVal在 -100..0
