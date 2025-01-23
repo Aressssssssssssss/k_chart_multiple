@@ -33,6 +33,7 @@ enum SecondaryState {
   WPR,
   DEMARKER,
   MOMENTUM,
+  MFI,
   NONE
 }
 

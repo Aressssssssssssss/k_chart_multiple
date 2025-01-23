@@ -133,6 +133,7 @@ class ChartColors {
   Color demColor = Colors.cyan; // DeMarker线
 
   Color momentumColor = Colors.indigo;
+  Color mfiColor = Colors.deepOrangeAccent;
 }
 
 class ChartStyle {

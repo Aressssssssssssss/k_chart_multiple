@@ -100,6 +100,11 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.MFI:
+        drawLine(lastPoint.mfi, curPoint.mfi, canvas, lastX, curX,
+            chartColors.mfiColor);
+        break;
+
       case SecondaryState.MOMENTUM:
         drawLine(lastPoint.momentum, curPoint.momentum, canvas, lastX, curX,
             chartColors.momentumColor);
@@ -318,6 +323,26 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.MFI:
+        List<TextSpan> spans = [];
+        spans.add(
+          TextSpan(
+            text: "MFI(14)  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+        );
+        if (data.mfi != null) {
+          spans.add(TextSpan(
+            text: "MFI:${format(data.mfi)}  ",
+            style: getTextStyle(chartColors.mfiColor),
+          ));
+        }
+        TextPainter tp = TextPainter(
+            text: TextSpan(children: spans), textDirection: TextDirection.ltr);
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.MOMENTUM:
         List<TextSpan> spans = [];
         spans.add(

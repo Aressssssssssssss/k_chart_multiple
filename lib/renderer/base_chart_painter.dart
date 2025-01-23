@@ -1607,9 +1607,80 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算Money Flow Index (MFI)
+  /// [period] 默认14
+  void _computeMFI(List<KLineEntity> data, {int period = 14}) {
+    final length = data.length;
+    if (length < 2) return;
+
+    // 先存 typicalPrice & rawMoneyFlow
+    // 并判断本条typicalPrice vs. 前条typicalPrice => positiveFlow或negativeFlow
+    // i=0无法和前条比 => 先设
+    List<double> posFlowArr = List.filled(length, 0);
+    List<double> negFlowArr = List.filled(length, 0);
+
+    // 计算第0条 typicalPrice & rawFlow
+    double tp0 = (data[0].high + data[0].low + data[0].close) / 3.0;
+    double rmf0 = tp0 * data[0].vol;
+    // 无前一条可比 => posFlow=0, negFlow=0
+    posFlowArr[0] = 0;
+    negFlowArr[0] = 0;
+
+    // i=1..end
+    for (int i = 1; i < length; i++) {
+      double tp = (data[i].high + data[i].low + data[i].close) / 3.0;
+      double rmf = tp * data[i].vol;
+
+      // 与前条tp对比
+      double prevTp =
+          (data[i - 1].high + data[i - 1].low + data[i - 1].close) / 3.0;
+      if (tp > prevTp) {
+        posFlowArr[i] = rmf;
+        negFlowArr[i] = 0;
+      } else if (tp < prevTp) {
+        posFlowArr[i] = 0;
+        negFlowArr[i] = rmf;
+      } else {
+        // tp == prevTp => 无显著资金流向
+        posFlowArr[i] = 0;
+        negFlowArr[i] = 0;
+      }
+    }
+
+    // 计算过去period的 sumPosFlow & sumNegFlow => MFI
+    for (int i = 0; i < length; i++) {
+      if (i < period) {
+        // 数据不足 => MFI=0或null
+        data[i].mfi = 0;
+      } else {
+        double sumPos = 0, sumNeg = 0;
+        int start = i - period + 1;
+        for (int j = start; j <= i; j++) {
+          sumPos += posFlowArr[j];
+          sumNeg += negFlowArr[j];
+        }
+        if (sumNeg < 1e-12) {
+          // 防止分母=0 => 全是posFlow
+          data[i].mfi = 100;
+        } else {
+          double mfr = sumPos / sumNeg;
+          double mfiVal =
+              100 - (100 / (1 + mfr)); // = 100 * sumPos/(sumPos+sumNeg)
+          if (!mfiVal.isFinite) mfiVal = 0;
+          data[i].mfi = mfiVal;
+        }
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    // 如果用户勾选 MFI
+    if (secondaryStates.contains(SecondaryState.MFI)) {
+      _computeMFI(datas!, period: 14);
+    }
     // 如果用户勾选了Momentum
     if (secondaryStates.contains(SecondaryState.MOMENTUM)) {
       _computeMomentum(datas!, period: 10);
@@ -1739,7 +1810,13 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.MOMENTUM) {
+        if (st == SecondaryState.MFI) {
+          double? mfiVal = item.mfi;
+          if (mfiVal != null && mfiVal.isFinite) {
+            if (mfiVal > newMax) newMax = mfiVal;
+            if (mfiVal < newMin) newMin = mfiVal;
+          }
+        } else if (st == SecondaryState.MOMENTUM) {
           double? val = item.momentum;
           if (val != null && val.isFinite) {
             if (val > newMax) newMax = val;

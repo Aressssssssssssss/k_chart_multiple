@@ -8,6 +8,7 @@ import 'hv_entity.dart';
 import 'ichimoku_entity.dart';
 import 'kdj_entity.dart';
 import 'macd_entity.dart';
+import 'mfi_entity.dart';
 import 'momentum_entity.dart';
 import 'obv_entiry.dart';
 import 'ppo_entity.dart';
@@ -54,4 +55,5 @@ class KEntity
         STOCHEntiry,
         WPREntiry,
         DEMEntiry,
-        MOMENTUMEntity {}
+        MOMENTUMEntity,
+        MFIEntity {}
