@@ -1,5 +1,7 @@
 # k_chart
 Maybe this is the best k chart in Flutter.Support drag,scale,long press,fling.And easy to use.
+Based on the https://github.com/OpenFlutter/k_chart
+Added support for multiple secondary chart and hiding main chart
 
 ## display
 
@@ -47,7 +49,7 @@ Container(
                 datas,// Required，Data must be an ordered list，(history=>now)
                 isLine: isLine,// Decide whether it is k-line or time-sharing
                 mainState: _mainState,// Decide what the main view shows
-                secondaryState: _secondaryState,// Decide what the sub view shows
+                secondaryStates: _secondaryStates,// Decide what the sub views shows
                 fixedLength: 2,// Displayed decimal precision
                 timeFormat: TimeFormat.YEAR_MONTH_DAY,
                 onLoadMore: (bool a) {},// Called when the data scrolls to the end. When a is true, it means the user is pulled to the end of the right side of the data. When a
@@ -68,15 +70,5 @@ use depth chart:
 DepthChart(_bids, _asks, chartColors) //Note: Datas must be an ordered list，
 ```
 
-#### Donate
-
-Buy a cup of coffee for the author.
-
-<img src="https://img-blog.csdnimg.cn/20181205161540134.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3F3ZTI1ODc4,size_16,color_FFFFFF,t_70" width="375" alt="alipay"/>
-<img src="https://img-blog.csdnimg.cn/20181205162201519.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3F3ZTI1ODc4,size_16,color_FFFFFF,t_70" width="375" alt="wechat"/>
-
 #### Thanks
 [gwhcn/flutter_k_chart](https://github.com/gwhcn/flutter_k_chart)
-
-#### Other
-Maybe there are some bugs in this k chart,or you want new indicators,you can create a pull request.I will happy to accept it and I hope we can make it better.
