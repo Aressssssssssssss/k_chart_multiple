@@ -192,6 +192,20 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.DMI); // 添加选中
           }
         }),
+        button("Secondary Chart:TRIX", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.TRIX)) {
+            _secondaryStates.remove(SecondaryState.TRIX); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.TRIX); // 添加选中
+          }
+        }),
+        button("Secondary Chart:PPO", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.PPO)) {
+            _secondaryStates.remove(SecondaryState.PPO); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.PPO); // 添加选中
+          }
+        }),
         button("Secondary Chart:Hide", onPressed: () {
           _secondaryStates.clear();
         }),

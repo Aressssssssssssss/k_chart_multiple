@@ -66,9 +66,18 @@ abstract class BaseChartRenderer<T> {
     if (lastPrice == null || curPrice == null) {
       return;
     }
+    // 跳过无穷大
+    if (!lastPrice.isFinite || !curPrice.isFinite) return;
+
     //("lasePrice==" + lastPrice.toString() + "==curPrice==" + curPrice.toString());
     double lastY = getY(lastPrice);
     double curY = getY(curPrice);
+
+    // 在这里加一行检查
+    if (!(lastX.isFinite && lastY.isFinite && curX.isFinite && curY.isFinite)) {
+      // 表示出现了 NaN/Infinity，直接跳过这条线
+      return;
+    }
     //print("lastX-----==" + lastX.toString() + "==lastY==" + lastY.toString() + "==curX==" + curX.toString() + "==curY==" + curY.toString());
     canvas.drawLine(
         Offset(lastX, lastY), Offset(curX, curY), chartPaint..color = color);

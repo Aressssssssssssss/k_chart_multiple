@@ -39,6 +39,20 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.PPO:
+        // 与MACD类似，画柱状或线？
+        // 常见做法：PPO主线 & PPO信号线 两条线
+        drawLine(lastPoint.ppo, curPoint.ppo, canvas, lastX, curX,
+            chartColors.ppoColor);
+        drawLine(lastPoint.ppoSignal, curPoint.ppoSignal, canvas, lastX, curX,
+            chartColors.ppoSignalColor);
+        break;
+      case SecondaryState.TRIX:
+        drawLine(lastPoint.trix, curPoint.trix, canvas, lastX, curX,
+            chartColors.trixColor);
+        drawLine(lastPoint.trixSignal, curPoint.trixSignal, canvas, lastX, curX,
+            chartColors.trixSignalColor);
+        break;
       case SecondaryState.DMI:
         // 画pdi、mdi、adx (以及adxr)
         drawLine(lastPoint.pdi, curPoint.pdi, canvas, lastX, curX,
@@ -106,6 +120,42 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.PPO:
+        children = [
+          TextSpan(
+            text: "PPO(12,26,9)  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+          if (data.ppo != null)
+            TextSpan(
+              text: "PPO:${format(data.ppo)}  ",
+              style: getTextStyle(chartColors.ppoColor),
+            ),
+          if (data.ppoSignal != null)
+            TextSpan(
+              text: "SIGNAL:${format(data.ppoSignal)}  ",
+              style: getTextStyle(chartColors.ppoSignalColor),
+            ),
+        ];
+        break;
+      case SecondaryState.TRIX:
+        children = [
+          TextSpan(
+            text: "TRIX(12,9)  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+          if (data.trix != null)
+            TextSpan(
+              text: "TRIX:${format(data.trix)}  ",
+              style: getTextStyle(chartColors.trixColor),
+            ),
+          if (data.trixSignal != null)
+            TextSpan(
+              text: "SIGNAL:${format(data.trixSignal)}  ",
+              style: getTextStyle(chartColors.trixSignalColor),
+            ),
+        ];
+        break;
       case SecondaryState.DMI:
         children = [
           TextSpan(

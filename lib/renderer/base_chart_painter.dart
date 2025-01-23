@@ -77,8 +77,10 @@ abstract class BaseChartPainter extends CustomPainter {
     mSecondaryMaxMap = {};
     mSecondaryMinMap = {};
     for (final st in secondaryStates) {
-      mSecondaryMaxMap[st] = double.minPositive;
-      mSecondaryMinMap[st] = double.maxFinite;
+      // mSecondaryMaxMap[st] = double.minPositive;//导致TRIX线无效
+      // mSecondaryMinMap[st] = double.maxFinite;
+      mSecondaryMaxMap[st] = -double.infinity; // 或 -double.maxFinite
+      mSecondaryMinMap[st] = double.infinity;
     }
     initFormats();
   }
@@ -170,40 +172,6 @@ abstract class BaseChartPainter extends CustomPainter {
   //交叉线值
   void drawCrossLineText(Canvas canvas, Size size);
 
-  // void initRect(Size size) {
-  //   double volHeight = volHidden != true ? mDisplayHeight * 0.2 : 0;
-  //   // double secondaryHeight = secondaryState != SecondaryState.NONE ? mDisplayHeight * 0.2 : 0;
-  //   double secondaryHeight =
-  //       secondaryStates.isNotEmpty ? mDisplayHeight * 0.2 : 0;
-
-  //   // double mainHeight = mDisplayHeight;
-  //   // mainHeight -= volHeight;
-  //   // mainHeight -= secondaryHeight;
-  //   double mainHeight =
-  //       mDisplayHeight - volHeight - (secondaryHeight * secondaryStates.length);
-
-  //   mMainRect = Rect.fromLTRB(0, mTopPadding, mWidth, mTopPadding + mainHeight);
-
-  //   if (volHidden != true) {
-  //     mVolRect = Rect.fromLTRB(0, mMainRect.bottom + mChildPadding, mWidth,
-  //         mMainRect.bottom + volHeight);
-  //   }
-
-  //   //secondaryState == SecondaryState.NONE隐藏副视图
-  //   if (secondaryStates.isNotEmpty) {
-  //     mSecondaryRect = Rect.fromLTRB(
-  //         0,
-  //         mMainRect.bottom + volHeight + mChildPadding,
-  //         mWidth,
-  //         mMainRect.bottom + volHeight + secondaryHeight);
-  //   }
-
-  //   // 添加日志
-  //   print('[initRect] Main Rect: $mMainRect');
-  //   print('[initRect] Vol Rect: $mVolRect');
-  //   print('[initRect] Secondary Rect: $mSecondaryRect');
-  // }
-
   void initRect(Size size) {
     double volHeight = volHidden != true ? mDisplayHeight * 0.2 : 0;
     double secondaryHeight =
@@ -235,6 +203,321 @@ abstract class BaseChartPainter extends CustomPainter {
     print('[initRect] Main Rect: $mMainRect');
     print('[initRect] Vol Rect: $mVolRect');
     print('[initRect] Secondary Rect: $mSecondaryRect');
+  }
+
+  /// 计算 Percentage Price Oscillator (PPO)
+  /// [fastPeriod]   PPO 快周期，常见默认 12
+  /// [slowPeriod]   PPO 慢周期，常见默认 26
+  /// [signalPeriod] PPO 信号线周期，常见默认 9
+  void _computePPO(List<KLineEntity> data,
+      {int fastPeriod = 12, int slowPeriod = 26, int signalPeriod = 9}) {
+    if (data.isEmpty) return;
+
+    final length = data.length;
+    // Step1: 先计算快/慢两条 EMA
+    List<double> emaFast = List.filled(length, 0);
+    List<double> emaSlow = List.filled(length, 0);
+
+    double alphaFast = 2.0 / (fastPeriod + 1);
+    double alphaSlow = 2.0 / (slowPeriod + 1);
+
+    // 初始化
+    emaFast[0] = data[0].close;
+    emaSlow[0] = data[0].close;
+    data[0].ppo = 0;
+    data[0].ppoSignal = 0;
+
+    // 计算快周期EMA和慢周期EMA
+    for (int i = 1; i < length; i++) {
+      double c = data[i].close;
+
+      emaFast[i] = emaFast[i - 1] + alphaFast * (c - emaFast[i - 1]);
+      emaSlow[i] = emaSlow[i - 1] + alphaSlow * (c - emaSlow[i - 1]);
+    }
+
+    // Step2: 计算 PPO 主线: ((EMAfast - EMAslow) / EMAslow) * 100
+    List<double> ppoLine = List.filled(length, 0);
+    for (int i = 0; i < length; i++) {
+      double slow = emaSlow[i];
+      if (slow.abs() < 1e-12) {
+        // 防止除 0 或极端爆炸 => 设为0
+        ppoLine[i] = 0;
+      } else {
+        double ratio = (emaFast[i] - slow) / slow * 100;
+        // 可做一下防爆保护
+        if (ratio.isInfinite || ratio.isNaN) {
+          ratio = 0;
+        } else if (ratio.abs() > 1e5) {
+          // 你可以自定义一个最大绝对值
+          ratio = ratio > 0 ? 1e5 : -1e5;
+        }
+        ppoLine[i] = ratio;
+      }
+      data[i].ppo = ppoLine[i];
+    }
+
+    // Step3: 计算 PPO信号线 (再对ppoLine做EMA平滑)
+    final double alphaSignal = 2.0 / (signalPeriod + 1);
+    if (length > 1) {
+      data[1].ppoSignal = ppoLine[1]; // 初始化
+      for (int i = 2; i < length; i++) {
+        double prevSignal = data[i - 1].ppoSignal ?? 0;
+        double curPPO = ppoLine[i];
+        double sig = prevSignal + alphaSignal * (curPPO - prevSignal);
+
+        // 防止溢出
+        if (!sig.isFinite) sig = 0;
+
+        data[i].ppoSignal = sig;
+      }
+    }
+  }
+
+  /// 计算 TRIX 指标和信号线
+  /// [period]       计算TRIX的周期(常见默认12)
+  /// [signalPeriod] 信号线周期(常见默认9)
+  void _computeTRIX(List<KLineEntity> data,
+      {int period = 12, int signalPeriod = 9}) {
+    if (data.isEmpty) return;
+
+    // 1) 先建3个临时数组保存中间结果(三次EMA)
+    final int length = data.length;
+    List<double> ema1 = List.filled(length, 0);
+    List<double> ema2 = List.filled(length, 0);
+    List<double> ema3 = List.filled(length, 0);
+
+    // EMA参数 (2/(period+1))，也可做Wilder等其它平滑
+    final double alpha = 2.0 / (period + 1);
+
+    // 初始化(第一条无从计算, 先直接等于close)
+    ema1[0] = data[0].close;
+    ema2[0] = data[0].close;
+    ema3[0] = data[0].close;
+    data[0].trix = 0; // 第0条没法算TRIX
+    data[0].trixSignal = 0; // 信号线也初始化
+
+    // 2) 计算三重EMA
+    for (int i = 1; i < length; i++) {
+      double c = data[i].close;
+
+      // 第一次EMA
+      ema1[i] = ema1[i - 1] + alpha * (c - ema1[i - 1]);
+
+      // 第二次EMA
+      ema2[i] = ema2[i - 1] + alpha * (ema1[i] - ema2[i - 1]);
+
+      // 第三次EMA
+      ema3[i] = ema3[i - 1] + alpha * (ema2[i] - ema3[i - 1]);
+    }
+
+    // 3) 根据第三次EMA来计算 TRIX
+    // for (int i = 1; i < length; i++) {
+    //   double prev3 = ema3[i - 1];
+    //   // if (prev3 != 0) {
+    //   //   double trixVal = (ema3[i] - prev3) / prev3 * 100;
+    //   //   data[i].trix = trixVal;
+    //   // } else {
+    //   //   data[i].trix = 0;
+    //   // }
+
+    //   // 如果 |(ema3[i] - prev3)/prev3| 超过某阈值，就直接截断
+    //   if (prev3.abs() > 1e-12) {
+    //     double ratio = (ema3[i] - prev3) / prev3;
+    //     if (ratio.abs() > 1e4) {
+    //       // 说明波动太大，直接截断
+    //       ratio = ratio > 0 ? 1e4 : -1e4;
+    //     }
+    //     data[i].trix = ratio * 100;
+    //   } else {
+    //     data[i].trix = 0;
+    //   }
+
+    //   // 调试打印
+    //   print('TRIX[$i]: ${data[i].trix}');
+    // }
+    for (int i = 1; i < length; i++) {
+      double prev3 = ema3[i - 1];
+      if (prev3.abs() < 1e-12) {
+        // 防止分母过小 => 爆炸
+        data[i].trix = 0;
+      } else {
+        double ratio = (ema3[i] - prev3) / prev3;
+        // 如果你想做强行截断:
+        if (ratio.isInfinite || ratio.isNaN) {
+          ratio = 0;
+        } else if (ratio.abs() > 1e4) {
+          // 自定义最大绝对值，避免过大
+          ratio = ratio > 0 ? 1e4 : -1e4;
+        }
+        data[i].trix = ratio * 100;
+      }
+    }
+
+    // 4) 计算信号线(对 TRIX 做一条EMA)
+    double alphaSignal = 2.0 / (signalPeriod + 1);
+    // 让第0条 or 第1条初始化
+    // 这里让第1条 = data[1].trix, 再从第2条开始
+    if (length > 1) {
+      data[1].trixSignal = data[1].trix ?? 0;
+      for (int i = 2; i < length; i++) {
+        double prevSignal = data[i - 1].trixSignal ?? 0;
+        double currTrix = data[i].trix ?? 0;
+        double signal = prevSignal + alphaSignal * (currTrix - prevSignal);
+        data[i].trixSignal = signal;
+      }
+    }
+  }
+
+  /// 计算 DMI/ADX 的增强版
+  /// [period]        常见默认14
+  /// [useAdxr]       是否计算并保存ADXR
+  /// [smoothMethod]  使用何种平滑算法:
+  ///                  - "wilder"   经典Wilder平滑 (默认)
+  ///                  - "ema"      指数平滑(EMA)
+  ///                  - "double"   先Wilder后EMA的双重平滑
+  ///
+  /// [adxrPeriod]    当 useAdxr=true 时，用于计算 ADXR(i) = (ADX(i) + ADX(i - adxrPeriod)) / 2
+  void _computeDMIAdvanced(
+    List<KLineEntity> data, {
+    int period = 14,
+    bool useAdxr = true,
+    int adxrPeriod = 14,
+    String smoothMethod = 'wilder',
+  }) {
+    if (data.isEmpty) return;
+
+    // --- 第一条数据无法算DM, 先给默认0 ---
+    data[0].pdi = 0;
+    data[0].mdi = 0;
+    data[0].adx = 0;
+    data[0].adxr = 0;
+
+    // 平滑序列: TR14, +DM14, -DM14
+    // 用于保存累计值, 后续根据 smoothMethod 进行不同的平滑处理
+    double trAccum = 0;
+    double plusDMAccum = 0;
+    double minusDMAccum = 0;
+
+    // 上一个 KLine（用于计算DM/TR）
+    double prevHigh = data[0].high;
+    double prevLow = data[0].low;
+    double prevClose = data[0].close;
+
+    // ------------------------------
+    //  第一次循环: 初步计算 DI 和 DX, 并做指定的平滑
+    // ------------------------------
+    for (int i = 1; i < data.length; i++) {
+      final cur = data[i];
+
+      final curHigh = cur.high;
+      final curLow = cur.low;
+
+      // 1) +DM / -DM
+      double upMove = curHigh - prevHigh;
+      double downMove = prevLow - curLow;
+      double plusDM = 0, minusDM = 0;
+      if (upMove > downMove && upMove > 0) {
+        plusDM = upMove;
+      }
+      if (downMove > upMove && downMove > 0) {
+        minusDM = downMove;
+      }
+
+      // 2) TR
+      final range1 = (curHigh - curLow).abs();
+      final range2 = (curHigh - prevClose).abs();
+      final range3 = (curLow - prevClose).abs();
+      final tr = [range1, range2, range3].reduce((a, b) => a > b ? a : b);
+
+      // ============= 根据选择的平滑方式，累加/衰减 =============
+      if (i == 1) {
+        // 初始化
+        trAccum = tr;
+        plusDMAccum = plusDM;
+        minusDMAccum = minusDM;
+        // 直接给第二条的pdi/mdi=0, 这条会在下一步中算
+        data[1].pdi = 0;
+        data[1].mdi = 0;
+        data[1].adx = 0;
+      } else {
+        switch (smoothMethod) {
+          case 'ema':
+            // ======== 直接用EMA衰减 ========
+            // 由于EMA需要一个alpha(2/(period+1))，可根据经验选
+            final alpha = 2.0 / (period + 1);
+            trAccum = trAccum + alpha * (tr - trAccum);
+            plusDMAccum = plusDMAccum + alpha * (plusDM - plusDMAccum);
+            minusDMAccum = minusDMAccum + alpha * (minusDM - minusDMAccum);
+            break;
+
+          case 'double':
+            // ======== 先Wilder再EMA（双重） ========
+            // 先用Wilder公式更新, 再对累加量做一次EMA平滑
+            double oldTR = trAccum,
+                oldPlus = plusDMAccum,
+                oldMinus = minusDMAccum;
+            // (a) Wilder
+            oldTR = oldTR - (oldTR / period) + tr;
+            oldPlus = oldPlus - (oldPlus / period) + plusDM;
+            oldMinus = oldMinus - (oldMinus / period) + minusDM;
+
+            // (b) 在Wilder结果上再做EMA
+            final alpha = 2.0 / (period + 1);
+            trAccum = trAccum + alpha * (oldTR - trAccum);
+            plusDMAccum = plusDMAccum + alpha * (oldPlus - plusDMAccum);
+            minusDMAccum = minusDMAccum + alpha * (oldMinus - minusDMAccum);
+            break;
+
+          case 'wilder':
+          default:
+            // ======== Wilder经典处理 ========
+            trAccum = trAccum - (trAccum / period) + tr;
+            plusDMAccum = plusDMAccum - (plusDMAccum / period) + plusDM;
+            minusDMAccum = minusDMAccum - (minusDMAccum / period) + minusDM;
+            break;
+        }
+      }
+
+      // 3) 计算 +DI / -DI
+      double plusDI = trAccum == 0 ? 0 : (100 * plusDMAccum / trAccum);
+      double minusDI = trAccum == 0 ? 0 : (100 * minusDMAccum / trAccum);
+
+      // 4) 计算DX
+      double sumDI = plusDI + minusDI;
+      double diffDI = (plusDI - minusDI).abs();
+      double dx = (sumDI == 0) ? 0 : (100 * diffDI / sumDI);
+
+      // 5) 计算或平滑 ADX
+      if (i == 1) {
+        // 对第二条先初始化
+        cur.adx = dx;
+      } else {
+        double prevAdx = data[i - 1].adx ?? 0;
+        // 这里也可根据smoothMethod来衰减 ADX，示例中继续Wilder:
+        cur.adx = ((prevAdx * (period - 1)) + dx) / period;
+      }
+
+      // 赋值到实体
+      cur.pdi = plusDI;
+      cur.mdi = minusDI;
+
+      // 更新 prev
+      prevHigh = curHigh;
+      prevLow = curLow;
+      prevClose = cur.close;
+    }
+
+    // ---------------------------------
+    // 如果需要计算 ADXR
+    // ADXR(i) = (ADX(i) + ADX(i - adxrPeriod)) / 2
+    // ---------------------------------
+    if (useAdxr) {
+      for (int i = adxrPeriod; i < data.length; i++) {
+        double adxI = data[i].adx ?? 0;
+        double adxIMinusPeriod = data[i - adxrPeriod].adx ?? 0;
+        data[i].adxr = (adxI + adxIMinusPeriod) / 2.0;
+      }
+    }
   }
 
   void _computeDMI(List<KLineEntity> data, {int period = 14}) {
@@ -324,9 +607,29 @@ abstract class BaseChartPainter extends CustomPainter {
     if (datas == null) return;
     if (datas!.isEmpty) return;
 
+    // 如果选了 PPO
+    if (secondaryStates.contains(SecondaryState.PPO)) {
+      _computePPO(datas!, fastPeriod: 12, slowPeriod: 26, signalPeriod: 9);
+    }
+
+    // 如果用户选择了TRIX做副图,则计算
+    if (secondaryStates.contains(SecondaryState.TRIX)) {
+      _computeTRIX(datas!, period: 12, signalPeriod: 9);
+    }
+
     // 如果用户配置了要显示DMI，则先计算DMI
+    // if (secondaryStates.contains(SecondaryState.DMI)) {
+    //   _computeDMI(datas!); // period可自定义
+    // }
+    // 如果用户勾选了DMI, 就内部计算DMI
     if (secondaryStates.contains(SecondaryState.DMI)) {
-      _computeDMI(datas!); // period可自定义
+      _computeDMIAdvanced(
+        datas!,
+        period: 14,
+        useAdxr: true, // 要不要计算ADXR
+        adxrPeriod: 14,
+        smoothMethod: 'ema', // 这里演示"双重平滑"
+      );
     }
 
     maxScrollX = getMinTranslateX().abs();
@@ -344,8 +647,32 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
+        if (st == SecondaryState.PPO) {
+          // 这里给PPO主线 + PPO信号线 做max/min
+          if (item.ppo != null && item.ppoSignal != null) {
+            double ppoVal = item.ppo!;
+            double ppoSig = item.ppoSignal!;
+            if (ppoVal.isFinite) {
+              newMax = newMax > ppoVal ? newMax : ppoVal;
+              newMin = newMin < ppoVal ? newMin : ppoVal;
+            }
+            if (ppoSig.isFinite) {
+              newMax = newMax > ppoSig ? newMax : ppoSig;
+              newMin = newMin < ppoSig ? newMin : ppoSig;
+            }
+          }
+        } else if (st == SecondaryState.TRIX) {
+          // 和MACD/KDJ类似，获取TRIX和其Signal线的值
+          if (item.trix != null && item.trixSignal != null) {
+            // 这里只示例主线/信号线各一个
+            // 如果你自己还想多画别的线，可以都加进reduce
+            newMax = [oldMax, item.trix!, item.trixSignal!]
+                .reduce((a, b) => a > b ? a : b);
 
-        if (st == SecondaryState.DMI) {
+            newMin = [oldMin, item.trix!, item.trixSignal!]
+                .reduce((a, b) => a < b ? a : b);
+          }
+        } else if (st == SecondaryState.DMI) {
           // pdi, mdi, adx, adxr
           if (item.pdi != null && item.mdi != null && item.adx != null) {
             // 这里假设你还需要adxr，可以一起写，否则省略

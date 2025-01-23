@@ -76,6 +76,12 @@ class ChartColors {
 
   /// DMI: ADXR
   Color dmiAdxrColor = Colors.purple;
+
+  Color trixColor = Colors.deepOrange; // TRIX主线
+  Color trixSignalColor = Colors.purple; // TRIX信号线
+
+  Color ppoColor = Colors.orange;
+  Color ppoSignalColor = Colors.purple;
 }
 
 class ChartStyle {

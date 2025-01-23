@@ -7,7 +7,7 @@ import 'package:k_chart_multiple/flutter_k_chart.dart';
 
 enum MainState { MA, BOLL, NONE }
 
-enum SecondaryState { MACD, KDJ, RSI, WR, CCI, DMI, NONE }
+enum SecondaryState { MACD, KDJ, RSI, WR, CCI, DMI, TRIX, PPO, NONE }
 
 class TimeFormat {
   static const List<String> YEAR_MONTH_DAY = [yyyy, '-', mm, '-', dd];
