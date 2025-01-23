@@ -1,4 +1,5 @@
 import 'candle_entity.dart';
+import 'ichimoku_entity.dart';
 import 'kdj_entity.dart';
 import 'macd_entity.dart';
 import 'ppo_entity.dart';
@@ -22,4 +23,5 @@ class KEntity
         DMIEntity,
         TRIXEntity,
         PPOEntity,
-        TSIXEntity {}
+        TSIXEntity,
+        ICHIMOKUEntity {}

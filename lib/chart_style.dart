@@ -85,6 +85,16 @@ class ChartColors {
 
   Color tsiColor = Colors.orangeAccent;
   Color tsiSignalColor = Colors.deepPurpleAccent;
+
+  // 线条颜色
+  Color ichimokuTenkanColor = Colors.red;
+  Color ichimokuKijunColor = Colors.blue;
+  Color ichimokuSpanAColor = Colors.green;
+  Color ichimokuSpanBColor = Colors.purple;
+  Color ichimokuChikouColor = Colors.orange;
+
+  // 云层填充色
+  Color ichimokuCloudColor = Colors.green; // 纯色, 实际绘制时会 .withOpacity(0.2)
 }
 
 class ChartStyle {

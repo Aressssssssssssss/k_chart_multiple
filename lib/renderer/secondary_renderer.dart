@@ -35,10 +35,100 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
     mMACDWidth = this.chartStyle.macdWidth;
   }
 
+  void drawIchimoku(
+    KLineEntity lastPoint,
+    KLineEntity curPoint,
+    double lastX,
+    double curX,
+    Size size,
+    Canvas canvas,
+  ) {
+    /// ---- 1) 画【云层填充】(SpanA和SpanB之间) ----
+    /// 先拿到上一个点与当前点的span A/B
+    final double? spanALast = lastPoint.ichimokuSpanA;
+    final double? spanBLast = lastPoint.ichimokuSpanB;
+    final double? spanACur = curPoint.ichimokuSpanA;
+    final double? spanBCur = curPoint.ichimokuSpanB;
+
+    // 如果任意一个数据是null，就没法画这段云
+    // 同时还可判断isFinite防止NaN/Infinity
+    if (spanALast != null &&
+        spanBLast != null &&
+        spanACur != null &&
+        spanBCur != null &&
+        spanALast.isFinite &&
+        spanBLast.isFinite &&
+        spanACur.isFinite &&
+        spanBCur.isFinite) {
+      double ySpanALast = getY(spanALast);
+      double ySpanBLast = getY(spanBLast);
+      double ySpanACur = getY(spanACur);
+      double ySpanBCur = getY(spanBCur);
+
+      // 构造一个4点闭合区域 path
+      Path cloudPath = Path()
+        ..moveTo(lastX, ySpanALast) // 左侧SpanA
+        ..lineTo(curX, ySpanACur) // 右侧SpanA
+        ..lineTo(curX, ySpanBCur) // 右侧SpanB
+        ..lineTo(lastX, ySpanBLast) // 左侧SpanB
+        ..close();
+
+      Paint cloudPaint = Paint()
+        ..isAntiAlias = true
+        ..color = chartColors.ichimokuCloudColor.withOpacity(0.2)
+        ..style = PaintingStyle.fill;
+
+      // 填充云层
+      canvas.drawPath(cloudPath, cloudPaint);
+    }
+
+    /// ---- 2) 绘制5条线 (Tenkan, Kijun, SpanA, SpanB, Chikou) ----
+    // 在画线时，也要注意null或无限值判断
+    drawLine(lastPoint.ichimokuTenkan, curPoint.ichimokuTenkan, canvas, lastX,
+        curX, chartColors.ichimokuTenkanColor);
+    drawLine(lastPoint.ichimokuKijun, curPoint.ichimokuKijun, canvas, lastX,
+        curX, chartColors.ichimokuKijunColor);
+    drawLine(lastPoint.ichimokuSpanA, curPoint.ichimokuSpanA, canvas, lastX,
+        curX, chartColors.ichimokuSpanAColor);
+    drawLine(lastPoint.ichimokuSpanB, curPoint.ichimokuSpanB, canvas, lastX,
+        curX, chartColors.ichimokuSpanBColor);
+    drawLine(lastPoint.ichimokuChikou, curPoint.ichimokuChikou, canvas, lastX,
+        curX, chartColors.ichimokuChikouColor);
+  }
+
   @override
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.ICHIMOKU:
+        drawIchimoku(lastPoint, curPoint, lastX, curX, size, canvas);
+        break;
+      // case SecondaryState.ICHIMOKU:
+      //   // 画Tenkan
+      //   drawLine(lastPoint.ichimokuTenkan, curPoint.ichimokuTenkan, canvas,
+      //       lastX, curX, chartColors.ichimokuTenkanColor);
+
+      //   // 画Kijun
+      //   drawLine(lastPoint.ichimokuKijun, curPoint.ichimokuKijun, canvas, lastX,
+      //       curX, chartColors.ichimokuKijunColor);
+
+      //   // 画Span A
+      //   drawLine(lastPoint.ichimokuSpanA, curPoint.ichimokuSpanA, canvas, lastX,
+      //       curX, chartColors.ichimokuSpanAColor);
+
+      //   // 画Span B
+      //   drawLine(lastPoint.ichimokuSpanB, curPoint.ichimokuSpanB, canvas, lastX,
+      //       curX, chartColors.ichimokuSpanBColor);
+
+      //   // 画Chikou
+      //   drawLine(lastPoint.ichimokuChikou, curPoint.ichimokuChikou, canvas,
+      //       lastX, curX, chartColors.ichimokuChikouColor);
+
+      //   // 如果想渲染云区(Span A和Span B之间的填充色),
+      //   // 可用 Path 把A、B连起来再fill. 需一些额外逻辑, 看需求实现.
+
+      //   break;
+
       case SecondaryState.TSI:
         // 画 TSI主线
         drawLine(lastPoint.tsi, curPoint.tsi, canvas, lastX, curX,
@@ -128,6 +218,52 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.ICHIMOKU:
+        // 组合5条线的字段到 children
+        List<TextSpan> spans = [];
+        spans.add(
+          TextSpan(
+            text: "Ichimoku(9,26,52)  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+        );
+
+        if (data.ichimokuTenkan != null) {
+          spans.add(TextSpan(
+              text: "Tenkan:${format(data.ichimokuTenkan)}  ",
+              style: getTextStyle(chartColors.ichimokuTenkanColor)));
+        }
+        if (data.ichimokuKijun != null) {
+          spans.add(TextSpan(
+              text: "Kijun:${format(data.ichimokuKijun)}  ",
+              style: getTextStyle(chartColors.ichimokuKijunColor)));
+        }
+        if (data.ichimokuSpanA != null) {
+          spans.add(TextSpan(
+              text: "SpanA:${format(data.ichimokuSpanA)}  ",
+              style: getTextStyle(chartColors.ichimokuSpanAColor)));
+        }
+        if (data.ichimokuSpanB != null) {
+          spans.add(TextSpan(
+              text: "SpanB:${format(data.ichimokuSpanB)}  ",
+              style: getTextStyle(chartColors.ichimokuSpanBColor)));
+        }
+        if (data.ichimokuChikou != null) {
+          spans.add(TextSpan(
+              text: "Chikou:${format(data.ichimokuChikou)}  ",
+              style: getTextStyle(chartColors.ichimokuChikouColor)));
+        }
+
+        // 将span列表转成TextSpan
+        TextPainter tp = TextPainter(
+          text: TextSpan(children: spans),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+        // 在 secondaryRect 顶部一点的位置画文字
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.TSI:
         children = [
           TextSpan(

@@ -677,9 +677,94 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算 Ichimoku (一目均衡表/云图)
+  /// [tenkanPeriod]  默认9
+  /// [kijunPeriod]   默认26
+  /// [senkouBPeriod] 默认52
+  /// [shift]         通常26，用于云图前移/后移，但在此仅计算值，不做实际数组越界写入
+  void _computeIchimoku(
+    List<KLineEntity> data, {
+    int tenkanPeriod = 9,
+    int kijunPeriod = 26,
+    int senkouBPeriod = 52,
+    int shift = 26,
+  }) {
+    final length = data.length;
+    if (length == 0) return;
+
+    // 函数: 取得[i-period+1 .. i]区间的最高价、最低价
+    double highestHigh(List<KLineEntity> list, int endIndex, int period) {
+      double hh = -double.infinity;
+      int start = endIndex - period + 1; // 包含endIndex
+      if (start < 0) start = 0;
+      for (int idx = start; idx <= endIndex; idx++) {
+        if (list[idx].high > hh) hh = list[idx].high;
+      }
+      return hh;
+    }
+
+    double lowestLow(List<KLineEntity> list, int endIndex, int period) {
+      double ll = double.infinity;
+      int start = endIndex - period + 1;
+      if (start < 0) start = 0;
+      for (int idx = start; idx <= endIndex; idx++) {
+        if (list[idx].low < ll) ll = list[idx].low;
+      }
+      return ll;
+    }
+
+    for (int i = 0; i < length; i++) {
+      // 1) 计算Tenkan(转换线)= (9日最高+9日最低)/2
+      if (i >= tenkanPeriod - 1) {
+        double hh = highestHigh(data, i, tenkanPeriod);
+        double ll = lowestLow(data, i, tenkanPeriod);
+        data[i].ichimokuTenkan = (hh + ll) / 2.0;
+      } else {
+        data[i].ichimokuTenkan = null; // 数据不够，无法计算
+      }
+
+      // 2) 计算Kijun(基准线)= (26日最高+26日最低)/2
+      if (i >= kijunPeriod - 1) {
+        double hh = highestHigh(data, i, kijunPeriod);
+        double ll = lowestLow(data, i, kijunPeriod);
+        data[i].ichimokuKijun = (hh + ll) / 2.0;
+      } else {
+        data[i].ichimokuKijun = null;
+      }
+
+      // 3) 先行Span A = (Tenkan + Kijun)/2 (一般要前移26)
+      //   这里为了避免下标越界，不对 i+shift 写入
+      //   只是在当前 i 存 "Span A" 的数值
+      if (data[i].ichimokuTenkan != null && data[i].ichimokuKijun != null) {
+        data[i].ichimokuSpanA =
+            (data[i].ichimokuTenkan! + data[i].ichimokuKijun!) / 2.0;
+      } else {
+        data[i].ichimokuSpanA = null;
+      }
+
+      // 4) 先行Span B= (52日最高+52日最低)/2 (一般要前移26)
+      if (i >= senkouBPeriod - 1) {
+        double hh = highestHigh(data, i, senkouBPeriod);
+        double ll = lowestLow(data, i, senkouBPeriod);
+        data[i].ichimokuSpanB = (hh + ll) / 2.0;
+      } else {
+        data[i].ichimokuSpanB = null;
+      }
+
+      // 5) 遁行线(Chikou)= 收盘价 (一般要后移26)
+      //   简化写法：存到当前 i
+      data[i].ichimokuChikou = data[i].close;
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    if (secondaryStates.contains(SecondaryState.ICHIMOKU)) {
+      _computeIchimoku(datas!,
+          tenkanPeriod: 9, kijunPeriod: 26, senkouBPeriod: 52);
+    }
 
     //如果包含 TSI，就做 TSI 计算
     if (secondaryStates.contains(SecondaryState.TSI)) {
@@ -726,7 +811,22 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.TSI) {
+        if (st == SecondaryState.ICHIMOKU) {
+          // 5条线: Tenkan, Kijun, SpanA, SpanB, Chikou
+          final lines = [
+            item.ichimokuTenkan,
+            item.ichimokuKijun,
+            item.ichimokuSpanA,
+            item.ichimokuSpanB,
+            item.ichimokuChikou,
+          ];
+          for (var val in lines) {
+            if (val != null && val.isFinite) {
+              if (val > newMax) newMax = val;
+              if (val < newMin) newMin = val;
+            }
+          }
+        } else if (st == SecondaryState.TSI) {
           // TSI + 信号线
           if (item.tsi != null && item.tsiSignal != null) {
             if (item.tsi!.isFinite) {

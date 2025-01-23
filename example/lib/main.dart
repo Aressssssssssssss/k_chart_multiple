@@ -213,6 +213,13 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.TSI); // 添加选中
           }
         }),
+        button("Secondary Chart:ICHIMOKU", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.ICHIMOKU)) {
+            _secondaryStates.remove(SecondaryState.ICHIMOKU); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.ICHIMOKU); // 添加选中
+          }
+        }),
         button("Secondary Chart:Hide", onPressed: () {
           _secondaryStates.clear();
         }),
