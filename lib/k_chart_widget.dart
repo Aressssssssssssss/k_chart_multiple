@@ -22,6 +22,7 @@ enum SecondaryState {
   AROON,
   VORTEX,
   ATR,
+  HV,
   NONE
 }
 

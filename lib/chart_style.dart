@@ -106,6 +106,8 @@ class ChartColors {
   Color vortexMinusColor = Colors.cyan;
 
   Color atrColor = Colors.orange;
+
+  Color hvColor = Colors.deepOrange;
 }
 
 class ChartStyle {

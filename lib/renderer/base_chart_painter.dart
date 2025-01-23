@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart'
     show Color, TextStyle, Rect, Canvas, Size, CustomPainter;
@@ -1038,9 +1038,85 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算 Historical Volatility (HV)
+  /// [period] 窗口期, 默认14
+  /// [annualFactor] 年化系数, 常见252(交易日), 或365(自然日)
+  /// 例如: HV= stdev( ln(close_i/close_{i-1}) ) over `period` * sqrt(annualFactor)
+  void _computeHV(
+    List<KLineEntity> data, {
+    int period = 14,
+    double annualFactor = 365, //252.0,
+  }) {
+    final length = data.length;
+    if (length < 2) return;
+
+    // 1) 先构建对数收益数组(从第1条开始)
+    // 第0条无法算对数收益, 设为0或null
+    List<double> logReturns = List.filled(length, 0.0);
+
+    for (int i = 1; i < length; i++) {
+      double cPrev = data[i - 1].close;
+      double cCur = data[i].close;
+      if (cPrev <= 0 || cCur <= 0) {
+        // 防止除0或负数(极端情况下)
+        logReturns[i] = 0;
+      } else {
+        double r = (cCur / cPrev).abs(); // abs() 避免负
+        if (r > 0) {
+          double lr = math.log(r);
+          if (!lr.isFinite) lr = 0;
+          logReturns[i] = lr;
+        } else {
+          logReturns[i] = 0;
+        }
+      }
+    }
+
+    // 2) 对 i >= period, 计算过去 [i-period+1 .. i] 的 stdev(logReturns)
+    // 并 annualize, 存到 data[i].hv
+    for (int i = 0; i < length; i++) {
+      if (i < period) {
+        data[i].hv = 0; // 或 null
+      } else {
+        // 取 period 个对数收益
+        int start = i - period + 1;
+        double sumR = 0;
+        for (int j = start; j <= i; j++) {
+          sumR += logReturns[j];
+        }
+        double meanR = sumR / period;
+
+        // 计算方差
+        double sumVar = 0;
+        for (int j = start; j <= i; j++) {
+          double diff = logReturns[j] - meanR;
+          sumVar += diff * diff;
+        }
+        double variance = sumVar / (period - 1); // 或 period
+
+        // 标准差
+        double stdDev = variance >= 0 ? math.sqrt(variance) : 0;
+
+        // annualize
+        double hvVal = stdDev * math.sqrt(annualFactor);
+
+        // 如果想要显示百分比 => hvVal*=100;
+        hvVal *= 100; //常见做法: 乘100再显示 -> 25.3 表示25.3%
+
+        // 防止溢出
+        if (!hvVal.isFinite) hvVal = 0;
+        data[i].hv = hvVal;
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    if (secondaryStates.contains(SecondaryState.HV)) {
+      _computeHV(datas!, period: 14, annualFactor: 365);
+    }
 
     if (secondaryStates.contains(SecondaryState.ATR)) {
       _computeATR(datas!, period: 14);
@@ -1111,7 +1187,13 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.ATR) {
+        if (st == SecondaryState.HV) {
+          double? hvVal = item.hv;
+          if (hvVal != null && hvVal.isFinite) {
+            if (hvVal > newMax) newMax = hvVal;
+            if (hvVal < newMin) newMin = hvVal;
+          }
+        } else if (st == SecondaryState.ATR) {
           double? a = item.atr;
           if (a != null && a.isFinite) {
             if (a > newMax) newMax = a;
@@ -1255,8 +1337,8 @@ abstract class BaseChartPainter extends CustomPainter {
           newMin = newMin < -100 ? newMin : -100;
         } else if (st == SecondaryState.CCI) {
           if (item.cci != null) {
-            newMax = max(newMax, item.cci!);
-            newMin = min(newMin, item.cci!);
+            newMax = math.max(newMax, item.cci!);
+            newMin = math.min(newMin, item.cci!);
           }
         }
         // 回写到 Map
@@ -1271,17 +1353,17 @@ abstract class BaseChartPainter extends CustomPainter {
   void getMainMaxMinValue(KLineEntity item, int i) {
     double maxPrice, minPrice;
     if (mainState == MainState.MA) {
-      maxPrice = max(item.high, _findMaxMA(item.maValueList ?? [0]));
-      minPrice = min(item.low, _findMinMA(item.maValueList ?? [0]));
+      maxPrice = math.max(item.high, _findMaxMA(item.maValueList ?? [0]));
+      minPrice = math.min(item.low, _findMinMA(item.maValueList ?? [0]));
     } else if (mainState == MainState.BOLL) {
-      maxPrice = max(item.up ?? 0, item.high);
-      minPrice = min(item.dn ?? 0, item.low);
+      maxPrice = math.max(item.up ?? 0, item.high);
+      minPrice = math.min(item.dn ?? 0, item.low);
     } else {
       maxPrice = item.high;
       minPrice = item.low;
     }
-    mMainMaxValue = max(mMainMaxValue, maxPrice);
-    mMainMinValue = min(mMainMinValue, minPrice);
+    mMainMaxValue = math.max(mMainMaxValue, maxPrice);
+    mMainMinValue = math.min(mMainMinValue, minPrice);
 
     if (mMainHighMaxValue < item.high) {
       mMainHighMaxValue = item.high;
@@ -1293,15 +1375,15 @@ abstract class BaseChartPainter extends CustomPainter {
     }
 
     if (isLine == true) {
-      mMainMaxValue = max(mMainMaxValue, item.close);
-      mMainMinValue = min(mMainMinValue, item.close);
+      mMainMaxValue = math.max(mMainMaxValue, item.close);
+      mMainMinValue = math.min(mMainMinValue, item.close);
     }
   }
 
   double _findMaxMA(List<double> a) {
     double result = double.minPositive;
     for (double i in a) {
-      result = max(result, i);
+      result = math.max(result, i);
     }
     return result;
   }
@@ -1309,16 +1391,20 @@ abstract class BaseChartPainter extends CustomPainter {
   double _findMinMA(List<double> a) {
     double result = double.maxFinite;
     for (double i in a) {
-      result = min(result, i == 0 ? double.maxFinite : i);
+      result = math.min(result, i == 0 ? double.maxFinite : i);
     }
     return result;
   }
 
   void getVolMaxMinValue(KLineEntity item) {
-    mVolMaxValue = max(mVolMaxValue,
-        max(item.vol, max(item.MA5Volume ?? 0, item.MA10Volume ?? 0)));
-    mVolMinValue = min(mVolMinValue,
-        min(item.vol, min(item.MA5Volume ?? 0, item.MA10Volume ?? 0)));
+    mVolMaxValue = math.max(
+        mVolMaxValue,
+        math.max(
+            item.vol, math.max(item.MA5Volume ?? 0, item.MA10Volume ?? 0)));
+    mVolMinValue = math.min(
+        mVolMinValue,
+        math.min(
+            item.vol, math.min(item.MA5Volume ?? 0, item.MA10Volume ?? 0)));
   }
 
   void getSecondaryMaxMinValue(KLineEntity item) {
@@ -1335,30 +1421,30 @@ abstract class BaseChartPainter extends CustomPainter {
 
       if (secondaryState == SecondaryState.MACD) {
         if (item.macd != null) {
-          mSecondaryMaxValue = max(
-              mSecondaryMaxValue, max(item.macd!, max(item.dif!, item.dea!)));
-          mSecondaryMinValue = min(
-              mSecondaryMinValue, min(item.macd!, min(item.dif!, item.dea!)));
+          mSecondaryMaxValue = math.max(mSecondaryMaxValue,
+              math.max(item.macd!, math.max(item.dif!, item.dea!)));
+          mSecondaryMinValue = math.min(mSecondaryMinValue,
+              math.min(item.macd!, math.min(item.dif!, item.dea!)));
         }
       } else if (secondaryState == SecondaryState.KDJ) {
         if (item.d != null) {
-          mSecondaryMaxValue =
-              max(mSecondaryMaxValue, max(item.k!, max(item.d!, item.j!)));
-          mSecondaryMinValue =
-              min(mSecondaryMinValue, min(item.k!, min(item.d!, item.j!)));
+          mSecondaryMaxValue = math.max(mSecondaryMaxValue,
+              math.max(item.k!, math.max(item.d!, item.j!)));
+          mSecondaryMinValue = math.min(mSecondaryMinValue,
+              math.min(item.k!, math.min(item.d!, item.j!)));
         }
       } else if (secondaryState == SecondaryState.RSI) {
         if (item.rsi != null) {
-          mSecondaryMaxValue = max(mSecondaryMaxValue, item.rsi!);
-          mSecondaryMinValue = min(mSecondaryMinValue, item.rsi!);
+          mSecondaryMaxValue = math.max(mSecondaryMaxValue, item.rsi!);
+          mSecondaryMinValue = math.min(mSecondaryMinValue, item.rsi!);
         }
       } else if (secondaryState == SecondaryState.WR) {
         mSecondaryMaxValue = 0;
         mSecondaryMinValue = -100;
       } else if (secondaryState == SecondaryState.CCI) {
         if (item.cci != null) {
-          mSecondaryMaxValue = max(mSecondaryMaxValue, item.cci!);
-          mSecondaryMinValue = min(mSecondaryMinValue, item.cci!);
+          mSecondaryMaxValue = math.max(mSecondaryMaxValue, item.cci!);
+          mSecondaryMinValue = math.min(mSecondaryMinValue, item.cci!);
         }
       } else {
         mSecondaryMaxValue = 0;
