@@ -15,6 +15,7 @@ import 'cci_entity.dart';
 import 'dmi_entity.dart';
 import 'trix_entity.dart';
 import 'vortex_entity.dart';
+import 'vwap_entiry.dart';
 
 class KEntity
     with
@@ -34,4 +35,5 @@ class KEntity
         AROONEntity,
         VORTEXEntity,
         ATREntiry,
-        HVEntiry {}
+        HVEntiry,
+        VWAPEntiry {}

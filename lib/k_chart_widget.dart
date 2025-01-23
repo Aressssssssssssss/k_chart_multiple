@@ -23,6 +23,7 @@ enum SecondaryState {
   VORTEX,
   ATR,
   HV,
+  VWAP,
   NONE
 }
 

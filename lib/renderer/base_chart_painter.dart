@@ -1110,9 +1110,52 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算VWAP(Volume Weighted Average Price)
+  /// [useTypicalPrice] 是否用 typicalPrice=(high+low+close)/3 (常见)
+  ///                   或也可以用 (open+close)/2, 看需求
+  /// 本示例默认 typicalPrice=(H+L+C)/3.
+  void _computeVWAP(List<KLineEntity> data, {bool useTypicalPrice = true}) {
+    final length = data.length;
+    if (length == 0) return;
+
+    double cumulativeVol = 0; // 累计成交量
+    double cumulativeVolPrice = 0; // 累计 (price * vol)
+
+    for (int i = 0; i < length; i++) {
+      double vol = data[i].vol;
+      if (vol < 0) vol = 0; // 防止极端或错误数据
+
+      double price;
+      if (useTypicalPrice) {
+        price = (data[i].high + data[i].low + data[i].close) / 3.0;
+      } else {
+        // 若想使用(open+close)/2, 或 purely close,可以写:
+        // price = (data[i].open + data[i].close)/2;
+        price = data[i].close;
+      }
+
+      cumulativeVol += vol;
+      cumulativeVolPrice += vol * price;
+
+      if (cumulativeVol.abs() < 1e-12) {
+        // 防止分母过小/为0
+        data[i].vwap = price; // or 0
+      } else {
+        double v = cumulativeVolPrice / cumulativeVol;
+        if (!v.isFinite) v = price; // 防NaN/Infinity
+        data[i].vwap = v;
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    // 若勾选了VWAP
+    if (secondaryStates.contains(SecondaryState.VWAP)) {
+      _computeVWAP(datas!); // period? window? 这里只示例自开头以来
+    }
 
     if (secondaryStates.contains(SecondaryState.HV)) {
       _computeHV(datas!, period: 14, annualFactor: 365);
@@ -1187,7 +1230,13 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.HV) {
+        if (st == SecondaryState.VWAP) {
+          double? v = item.vwap;
+          if (v != null && v.isFinite) {
+            if (v > newMax) newMax = v;
+            if (v < newMin) newMin = v;
+          }
+        } else if (st == SecondaryState.HV) {
           double? hvVal = item.hv;
           if (hvVal != null && hvVal.isFinite) {
             if (hvVal > newMax) newMax = hvVal;

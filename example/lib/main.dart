@@ -255,6 +255,13 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.HV); // 添加选中
           }
         }),
+        button("Secondary Chart:VWAP", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.VWAP)) {
+            _secondaryStates.remove(SecondaryState.VWAP); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.VWAP); // 添加选中
+          }
+        }),
         button("Secondary Chart:Hide", onPressed: () {
           _secondaryStates.clear();
         }),

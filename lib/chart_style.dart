@@ -108,6 +108,8 @@ class ChartColors {
   Color atrColor = Colors.orange;
 
   Color hvColor = Colors.deepOrange;
+
+  Color vwapColor = Colors.blueAccent;
 }
 
 class ChartStyle {
