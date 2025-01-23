@@ -113,6 +113,8 @@ class ChartColors {
 
   Color obvColor = Colors.blue; // OBV原始线
   Color obvEmaColor = Colors.orange; // 对OBV平滑后的线
+
+  Color adlColor = Colors.purple;
 }
 
 class ChartStyle {

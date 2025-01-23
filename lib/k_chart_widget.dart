@@ -25,6 +25,7 @@ enum SecondaryState {
   HV,
   VWAP,
   OBV,
+  ADL,
   NONE
 }
 

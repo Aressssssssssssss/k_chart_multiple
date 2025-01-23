@@ -1,3 +1,4 @@
+import 'adl_entity.dart';
 import 'aroon_entity.dart';
 import 'atr_entity.dart';
 import 'candle_entity.dart';
@@ -38,4 +39,5 @@ class KEntity
         ATREntiry,
         HVEntiry,
         VWAPEntiry,
-        OBVEntiry {}
+        OBVEntiry,
+        ADLEntiry {}

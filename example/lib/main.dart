@@ -269,6 +269,13 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.OBV); // 添加选中
           }
         }),
+        button("Secondary Chart:ADL", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.ADL)) {
+            _secondaryStates.remove(SecondaryState.ADL); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.ADL); // 添加选中
+          }
+        }),
         button("Secondary Chart:Hide", onPressed: () {
           _secondaryStates.clear();
         }),

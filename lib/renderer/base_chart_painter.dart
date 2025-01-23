@@ -1206,9 +1206,46 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算 Accumulation/Distribution (A/D) Line
+  /// A/D(i) = A/D(i-1) + ((close - low) - (high - close))/(high - low) * volume
+  void _computeADLine(List<KLineEntity> data) {
+    final length = data.length;
+    if (length == 0) return;
+
+    double adPrev = 0;
+    if (length > 0) {
+      data[0].adl = 0; // 或把 0 作为初始
+    }
+    for (int i = 1; i < length; i++) {
+      final cur = data[i];
+
+      double h = cur.high;
+      double l = cur.low;
+      double c = cur.close;
+      double v = cur.vol;
+
+      double multiplier = 0;
+      double hlRange = (h - l).abs();
+      if (hlRange > 1e-12) {
+        multiplier = ((c - l) - (h - c)) / hlRange;
+        // => (2c - h - l)/(h-l)
+      }
+      double moneyFlowVol = multiplier * v;
+      double adVal = adPrev + moneyFlowVol;
+
+      cur.adl = adVal;
+      adPrev = adVal;
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    // 如果勾选了ADL
+    if (secondaryStates.contains(SecondaryState.ADL)) {
+      _computeADLine(datas!);
+    }
 
     if (secondaryStates.contains(SecondaryState.OBV)) {
       // 假设想对OBV再做10周期EMA
@@ -1293,7 +1330,13 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.OBV) {
+        if (st == SecondaryState.ADL) {
+          double? v = item.adl;
+          if (v != null && v.isFinite) {
+            if (v > newMax) newMax = v;
+            if (v < newMin) newMin = v;
+          }
+        } else if (st == SecondaryState.OBV) {
           // 这里可纳入obvEma(更平滑) or obv(原始) 作为坐标
           double? val = item.obvEma; // 优先看平滑
           if (val != null && val.isFinite) {

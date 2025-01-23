@@ -100,6 +100,11 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.ADL:
+        drawLine(lastPoint.adl, curPoint.adl, canvas, lastX, curX,
+            chartColors.adlColor);
+        break;
+
       case SecondaryState.OBV:
         // 画OBV原始线
         drawLine(lastPoint.obv, curPoint.obv, canvas, lastX, curX,
@@ -268,6 +273,29 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.ADL:
+        List<TextSpan> spans = [];
+        spans.add(
+          TextSpan(
+            text: "A/D Line  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+        );
+        if (data.adl != null) {
+          spans.add(TextSpan(
+            text: "ADL:${format(data.adl)}  ",
+            style: getTextStyle(chartColors.adlColor),
+          ));
+        }
+
+        TextPainter tp = TextPainter(
+          text: TextSpan(children: spans),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.OBV:
         List<TextSpan> spans = [];
         spans.add(
