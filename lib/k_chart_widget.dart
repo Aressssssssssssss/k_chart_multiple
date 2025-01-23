@@ -18,6 +18,7 @@ enum SecondaryState {
   PPO,
   TSI,
   ICHIMOKU,
+  SAR,
   NONE
 }
 

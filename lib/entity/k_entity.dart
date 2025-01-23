@@ -5,6 +5,7 @@ import 'macd_entity.dart';
 import 'ppo_entity.dart';
 import 'rsi_entity.dart';
 import 'rw_entity.dart';
+import 'sar_entity.dart';
 import 'tsi_entity.dart';
 import 'volume_entity.dart';
 import 'cci_entity.dart';
@@ -24,4 +25,5 @@ class KEntity
         TRIXEntity,
         PPOEntity,
         TSIXEntity,
-        ICHIMOKUEntity {}
+        ICHIMOKUEntity,
+        SAREntity {}

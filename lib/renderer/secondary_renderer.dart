@@ -100,34 +100,41 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.SAR:
+        // 画一条线 or 一系列点
+        // 1) 你可以直接在 drawChart(lastPoint, curPoint) 里用 drawLine(...) or drawCircle(...)
+
+        // 演示：点对点画圆 (可替换成 line)
+        final psarLast = lastPoint.psar;
+        final psarCur = curPoint.psar;
+        if (psarLast != null && psarLast.isFinite) {
+          double yLast = getY(psarLast);
+          Paint p = chartPaint
+            ..color =
+                curPoint.psarIsUp! ? chartColors.upColor : chartColors.dnColor
+            ..style = PaintingStyle.fill
+            ..strokeWidth = 1.0;
+
+          // 这里画上一个点
+          // lastX, yLast => 2.5半径的小圆
+          canvas.drawCircle(Offset(lastX, yLast), 2.5, p);
+        }
+
+        if (psarCur != null && psarCur.isFinite) {
+          double yCur = getY(psarCur);
+          Paint p = chartPaint
+            ..color =
+                curPoint.psarIsUp! ? chartColors.upColor : chartColors.dnColor
+            ..style = PaintingStyle.fill
+            ..strokeWidth = 1.0;
+          // 这里画当前点
+          canvas.drawCircle(Offset(curX, yCur), 2.5, p);
+        }
+        break;
+
       case SecondaryState.ICHIMOKU:
         drawIchimoku(lastPoint, curPoint, lastX, curX, size, canvas);
         break;
-      // case SecondaryState.ICHIMOKU:
-      //   // 画Tenkan
-      //   drawLine(lastPoint.ichimokuTenkan, curPoint.ichimokuTenkan, canvas,
-      //       lastX, curX, chartColors.ichimokuTenkanColor);
-
-      //   // 画Kijun
-      //   drawLine(lastPoint.ichimokuKijun, curPoint.ichimokuKijun, canvas, lastX,
-      //       curX, chartColors.ichimokuKijunColor);
-
-      //   // 画Span A
-      //   drawLine(lastPoint.ichimokuSpanA, curPoint.ichimokuSpanA, canvas, lastX,
-      //       curX, chartColors.ichimokuSpanAColor);
-
-      //   // 画Span B
-      //   drawLine(lastPoint.ichimokuSpanB, curPoint.ichimokuSpanB, canvas, lastX,
-      //       curX, chartColors.ichimokuSpanBColor);
-
-      //   // 画Chikou
-      //   drawLine(lastPoint.ichimokuChikou, curPoint.ichimokuChikou, canvas,
-      //       lastX, curX, chartColors.ichimokuChikouColor);
-
-      //   // 如果想渲染云区(Span A和Span B之间的填充色),
-      //   // 可用 Path 把A、B连起来再fill. 需一些额外逻辑, 看需求实现.
-
-      //   break;
 
       case SecondaryState.TSI:
         // 画 TSI主线
@@ -218,6 +225,32 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.SAR:
+        List<TextSpan> spans = [];
+        spans.add(
+          TextSpan(
+            text: "SAR(0.02,0.2)  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+        );
+        if (data.psar != null) {
+          spans.add(
+            TextSpan(
+              text: "PSAR:${format(data.psar)}  ",
+              style: getTextStyle(chartColors.sarColor),
+            ),
+          );
+        }
+
+        // 组装
+        TextPainter tp = TextPainter(
+          text: TextSpan(children: spans),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.ICHIMOKU:
         // 组合5条线的字段到 children
         List<TextSpan> spans = [];

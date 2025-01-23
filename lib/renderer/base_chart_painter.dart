@@ -757,9 +757,106 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算Parabolic SAR(抛物线转向指标)
+  /// [accInit]    初始加速因子(默认0.02)
+  /// [accStep]    每次更新的加速步长(默认0.02)
+  /// [accMax]     最大加速因子(默认0.2)
+  void _computePSAR(
+    List<KLineEntity> data, {
+    double accInit = 0.02,
+    double accStep = 0.02,
+    double accMax = 0.2,
+  }) {
+    final length = data.length;
+    if (length < 2) return;
+
+    // 第1步：根据前两根K线判断初始趋势:
+    // 如果 close(1) > close(0)，就Up，否则Down
+    bool isUp = data[1].close > data[0].close;
+    // 初始psar等
+    // sar指示值, ep表示极点(最高价或最低价), af=加速因子
+    double sar = isUp ? data[0].low : data[0].high;
+    double ep = isUp ? data[0].high : data[0].low;
+    double af = accInit;
+
+    // 先给第0条、1条一个初始值
+    data[0].psar = sar; // 或设置为null也可
+    data[1].psar = sar; // 这样第1条不会缺失
+
+    for (int i = 2; i < length; i++) {
+      data[i].psarIsUp = isUp;
+      final cur = data[i];
+
+      // 2) 计算新的sar
+      double newSar = sar + af * (ep - sar);
+
+      // 防止溢出
+      if (!newSar.isFinite) {
+        newSar = sar;
+      }
+
+      // 3) 判断趋势(如果当前是上升趋势)
+      if (isUp) {
+        // 新的SAR不能高于 前2根k线的最低价
+        double min1 = data[i - 1].low;
+        double min2 = data[i - 2].low;
+        if (newSar > min1) newSar = min1;
+        if (newSar > min2) newSar = min2;
+
+        // 如果现在的SAR >= 当前k线的low(说明趋势可能翻转)
+        if (newSar > cur.low) {
+          // 趋势翻转
+          isUp = false;
+          newSar = ep; // sar重置为上一轮的ep
+          // ep改为当前的low
+          ep = cur.low;
+          af = accInit; // 加速因子重置
+        } else {
+          // 趋势未翻转
+          // 如果当前high > 旧的ep => ep=high & 加速因子+=step
+          if (cur.high > ep) {
+            ep = cur.high;
+            af += accStep;
+            if (af > accMax) af = accMax;
+          }
+        }
+      } else {
+        // 当前是下行趋势
+        // 新的SAR不能低于 前2根k线的最高价
+        double max1 = data[i - 1].high;
+        double max2 = data[i - 2].high;
+        if (newSar < max1) newSar = max1;
+        if (newSar < max2) newSar = max2;
+
+        // 如果新的SAR <= 当前k线的high => 趋势翻转
+        if (newSar < cur.high) {
+          isUp = true;
+          newSar = ep; // sar重置
+          ep = cur.high;
+          af = accInit;
+        } else {
+          // 下行趋势继续
+          if (cur.low < ep) {
+            ep = cur.low;
+            af += accStep;
+            if (af > accMax) af = accMax;
+          }
+        }
+      }
+
+      sar = newSar;
+      cur.psar = sar;
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    // 如果用户勾选了SAR
+    if (secondaryStates.contains(SecondaryState.SAR)) {
+      _computePSAR(datas!, accInit: 0.02, accStep: 0.02, accMax: 0.2);
+    }
 
     if (secondaryStates.contains(SecondaryState.ICHIMOKU)) {
       _computeIchimoku(datas!,
@@ -811,7 +908,14 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.ICHIMOKU) {
+        if (st == SecondaryState.SAR) {
+          // 只存一条 psar
+          final psarVal = item.psar;
+          if (psarVal != null && psarVal.isFinite) {
+            if (psarVal > newMax) newMax = psarVal;
+            if (psarVal < newMin) newMin = psarVal;
+          }
+        } else if (st == SecondaryState.ICHIMOKU) {
           // 5条线: Tenkan, Kijun, SpanA, SpanB, Chikou
           final lines = [
             item.ichimokuTenkan,
