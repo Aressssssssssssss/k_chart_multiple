@@ -4,10 +4,11 @@ import 'macd_entity.dart';
 import 'ppo_entity.dart';
 import 'rsi_entity.dart';
 import 'rw_entity.dart';
+import 'tsi_entity.dart';
 import 'volume_entity.dart';
 import 'cci_entity.dart';
-import 'dmi_entity.dart'; // 新增
-import 'trix_entity.dart'; // 新增
+import 'dmi_entity.dart';
+import 'trix_entity.dart';
 
 class KEntity
     with
@@ -20,4 +21,5 @@ class KEntity
         MACDEntity,
         DMIEntity,
         TRIXEntity,
-        PPOEntity {}
+        PPOEntity,
+        TSIXEntity {}

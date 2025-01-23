@@ -39,6 +39,14 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.TSI:
+        // 画 TSI主线
+        drawLine(lastPoint.tsi, curPoint.tsi, canvas, lastX, curX,
+            chartColors.tsiColor);
+        // 再画 TSI 信号线
+        drawLine(lastPoint.tsiSignal, curPoint.tsiSignal, canvas, lastX, curX,
+            chartColors.tsiSignalColor);
+        break;
       case SecondaryState.PPO:
         // 与MACD类似，画柱状或线？
         // 常见做法：PPO主线 & PPO信号线 两条线
@@ -120,6 +128,22 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.TSI:
+        children = [
+          TextSpan(
+              text: "TSI(25,13,9)  ",
+              style: getTextStyle(chartColors.defaultTextColor)),
+          if (data.tsi != null)
+            TextSpan(
+                text: "TSI:${format(data.tsi)}  ",
+                style: getTextStyle(chartColors.tsiColor)),
+          if (data.tsiSignal != null)
+            TextSpan(
+                text: "SIGNAL:${format(data.tsiSignal)}  ",
+                style: getTextStyle(chartColors.tsiSignalColor)),
+        ];
+        break;
+
       case SecondaryState.PPO:
         children = [
           TextSpan(

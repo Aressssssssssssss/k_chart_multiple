@@ -603,9 +603,88 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算 TSI (True Strength Index) 指标
+  /// [r]            第一次EMA的周期(常用25)
+  /// [s]            第二次EMA的周期(常用13)
+  /// [signalPeriod] 信号线EMA周期(常用9)
+  void _computeTSI(List<KLineEntity> data,
+      {int r = 25, int s = 13, int signalPeriod = 9}) {
+    if (data.length < 2) return;
+
+    final length = data.length;
+    // 第1步: 计算每根K线的 mom(i) = close(i) - close(i-1)
+    List<double> mom = List.filled(length, 0);
+    List<double> absMom = List.filled(length, 0);
+
+    for (int i = 1; i < length; i++) {
+      double diff = data[i].close - data[i - 1].close;
+      mom[i] = diff;
+      absMom[i] = diff.abs();
+    }
+
+    // 第2步: 对 mom 和 absMom 各做 "双重EMA"：先周期r，再周期s
+    // 先建数组, 分两轮
+    List<double> emaR_mom = List.filled(length, 0);
+    List<double> emaR_abs = List.filled(length, 0);
+    double alphaR = 2.0 / (r + 1);
+
+    // (a) 第一次EMA(周期r)
+    emaR_mom[0] = mom[0]; // 第0条mom=0
+    emaR_abs[0] = absMom[0]; // 第0条absMom=0
+
+    for (int i = 1; i < length; i++) {
+      emaR_mom[i] = emaR_mom[i - 1] + alphaR * (mom[i] - emaR_mom[i - 1]);
+      emaR_abs[i] = emaR_abs[i - 1] + alphaR * (absMom[i] - emaR_abs[i - 1]);
+    }
+
+    // (b) 第二次EMA(周期s)
+    List<double> emaRS_mom = List.filled(length, 0);
+    List<double> emaRS_abs = List.filled(length, 0);
+    double alphaS = 2.0 / (s + 1);
+
+    emaRS_mom[0] = emaR_mom[0];
+    emaRS_abs[0] = emaR_abs[0];
+    for (int i = 1; i < length; i++) {
+      emaRS_mom[i] =
+          emaRS_mom[i - 1] + alphaS * (emaR_mom[i] - emaRS_mom[i - 1]);
+      emaRS_abs[i] =
+          emaRS_abs[i - 1] + alphaS * (emaR_abs[i] - emaRS_abs[i - 1]);
+    }
+
+    // 第3步: 计算 TSI 主线: 100 * (emaRS_mom / emaRS_abs)
+    for (int i = 0; i < length; i++) {
+      double denom = emaRS_abs[i];
+      double tsiValue;
+      if (denom.abs() < 1e-12) {
+        tsiValue = 0;
+      } else {
+        tsiValue = (emaRS_mom[i] / denom) * 100;
+      }
+      // 防爆保护
+      if (!tsiValue.isFinite) tsiValue = 0;
+      data[i].tsi = tsiValue;
+    }
+
+    // 第4步: 计算 TSI 的信号线(对 TSI 做个 EMA)
+    double alphaSignal = 2.0 / (signalPeriod + 1);
+    data[0].tsiSignal = data[0].tsi ?? 0; // 初始化
+    for (int i = 1; i < length; i++) {
+      double prevSig = data[i - 1].tsiSignal ?? 0;
+      double curTsi = data[i].tsi ?? 0;
+      double sig = prevSig + alphaSignal * (curTsi - prevSig);
+      if (!sig.isFinite) sig = 0;
+      data[i].tsiSignal = sig;
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    //如果包含 TSI，就做 TSI 计算
+    if (secondaryStates.contains(SecondaryState.TSI)) {
+      _computeTSI(datas!, r: 25, s: 13, signalPeriod: 9);
+    }
 
     // 如果选了 PPO
     if (secondaryStates.contains(SecondaryState.PPO)) {
@@ -647,7 +726,19 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.PPO) {
+        if (st == SecondaryState.TSI) {
+          // TSI + 信号线
+          if (item.tsi != null && item.tsiSignal != null) {
+            if (item.tsi!.isFinite) {
+              newMax = newMax > item.tsi! ? newMax : item.tsi!;
+              newMin = newMin < item.tsi! ? newMin : item.tsi!;
+            }
+            if (item.tsiSignal!.isFinite) {
+              newMax = newMax > item.tsiSignal! ? newMax : item.tsiSignal!;
+              newMin = newMin < item.tsiSignal! ? newMin : item.tsiSignal!;
+            }
+          }
+        } else if (st == SecondaryState.PPO) {
           // 这里给PPO主线 + PPO信号线 做max/min
           if (item.ppo != null && item.ppoSignal != null) {
             double ppoVal = item.ppo!;

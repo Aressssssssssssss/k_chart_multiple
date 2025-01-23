@@ -82,6 +82,9 @@ class ChartColors {
 
   Color ppoColor = Colors.orange;
   Color ppoSignalColor = Colors.purple;
+
+  Color tsiColor = Colors.orangeAccent;
+  Color tsiSignalColor = Colors.deepPurpleAccent;
 }
 
 class ChartStyle {

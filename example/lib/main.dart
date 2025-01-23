@@ -206,6 +206,13 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.PPO); // 添加选中
           }
         }),
+        button("Secondary Chart:TSI", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.TSI)) {
+            _secondaryStates.remove(SecondaryState.TSI); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.TSI); // 添加选中
+          }
+        }),
         button("Secondary Chart:Hide", onPressed: () {
           _secondaryStates.clear();
         }),
