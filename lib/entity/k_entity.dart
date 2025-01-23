@@ -22,6 +22,7 @@ import 'dmi_entity.dart';
 import 'trix_entity.dart';
 import 'vortex_entity.dart';
 import 'vwap_entiry.dart';
+import 'wpr_entity.dart';
 
 class KEntity
     with
@@ -48,4 +49,5 @@ class KEntity
         VIXEntiry,
         ADXEntiry,
         STDEntiry,
-        STOCHEntiry {}
+        STOCHEntiry,
+        WPREntiry {}

@@ -30,6 +30,7 @@ enum SecondaryState {
   ADX,
   STDDEV,
   STOCHASTIC,
+  WPR,
   NONE
 }
 

@@ -100,6 +100,12 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.WPR:
+        // 只是一条线
+        drawLine(lastPoint.wpr, curPoint.wpr, canvas, lastX, curX,
+            chartColors.wprColor);
+        break;
+
       case SecondaryState.STOCHASTIC:
         // 画 %K
         drawLine(lastPoint.stochK, curPoint.stochK, canvas, lastX, curX,
@@ -302,6 +308,28 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.WPR:
+        List<TextSpan> spans = [];
+        spans.add(
+          TextSpan(
+            text: "WPR(14)  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+        );
+        if (data.wpr != null) {
+          spans.add(TextSpan(
+            text: "%R:${format(data.wpr)}  ",
+            style: getTextStyle(chartColors.wprColor),
+          ));
+        }
+        TextPainter tp = TextPainter(
+          text: TextSpan(children: spans),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.STOCHASTIC:
         List<TextSpan> spans = [];
         spans.add(

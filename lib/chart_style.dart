@@ -127,6 +127,8 @@ class ChartColors {
 
   Color stochKColor = Colors.green;
   Color stochDColor = Colors.red;
+
+  Color wprColor = Colors.indigo;
 }
 
 class ChartStyle {

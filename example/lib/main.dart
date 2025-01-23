@@ -304,6 +304,13 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.STOCHASTIC); // 添加选中
           }
         }),
+        button("WPR", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.WPR)) {
+            _secondaryStates.remove(SecondaryState.WPR); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.WPR); // 添加选中
+          }
+        }),
         button("Secondary Chart:Hide", onPressed: () {
           _secondaryStates.clear();
         }),

@@ -1490,9 +1490,52 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算 Williams’ %R
+  /// [period] 常见默认14
+  /// 结果范围通常 -100(超卖) ~ 0(超买)
+  void _computeWPR(List<KLineEntity> data, {int period = 14}) {
+    final length = data.length;
+    if (length < 1) return;
+
+    for (int i = 0; i < length; i++) {
+      if (i < period - 1) {
+        // 数据不足
+        data[i].wpr = -50; // 或null
+      } else {
+        double highest = -double.infinity;
+        double lowest = double.infinity;
+        int start = i - period + 1;
+        for (int j = start; j <= i; j++) {
+          double h = data[j].high;
+          double l = data[j].low;
+          if (h > highest) highest = h;
+          if (l < lowest) lowest = l;
+        }
+        double c = data[i].close;
+        double denominator = (highest - lowest).abs();
+        double wprVal = 0;
+        if (denominator < 1e-12) {
+          // 防止分母=0
+          wprVal = 0;
+        } else {
+          wprVal = ((highest - c) / denominator) * (-100);
+        }
+        if (!wprVal.isFinite) {
+          wprVal = 0;
+        }
+        data[i].wpr = wprVal;
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+    // 如果副图里包含 WPR
+    if (secondaryStates.contains(SecondaryState.WPR)) {
+      _computeWPR(datas!, period: 14);
+    }
+
     // 如果用户勾选了STOCHASTIC
     if (secondaryStates.contains(SecondaryState.STOCHASTIC)) {
       _computeStochastic(datas!, periodK: 14, periodD: 3);
@@ -1607,7 +1650,15 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.STOCHASTIC) {
+        if (st == SecondaryState.WPR) {
+          double? wVal = item.wpr;
+          if (wVal != null && wVal.isFinite) {
+            // 常见 wVal在 -100..0
+            // 但为了兼容，还是正常比较
+            if (wVal > newMax) newMax = wVal;
+            if (wVal < newMin) newMin = wVal;
+          }
+        } else if (st == SecondaryState.STOCHASTIC) {
           // stochK, stochD
           double? kVal = item.stochK;
           double? dVal = item.stochD;
