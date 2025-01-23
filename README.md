@@ -23,7 +23,7 @@ Added support for multiple secondary chart and hiding main chart
 #### Install
 ```
 dependencies:
-  k_chart_multiple: ^0.7.1
+  k_chart_multiple: ^1.0.0
 ```
 or use latest：
 ```

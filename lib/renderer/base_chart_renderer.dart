@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../flutter_k_chart.dart';
+
 export '../chart_style.dart';
 
 abstract class BaseChartRenderer<T> {
@@ -48,12 +50,16 @@ abstract class BaseChartRenderer<T> {
 
   void drawGrid(Canvas canvas, int gridRows, int gridColumns);
 
-  void drawText(Canvas canvas, T data, double x);
+  // void drawText(Canvas canvas, T data, double x);
 
   void drawVerticalText(canvas, textStyle, int gridRows);
 
-  void drawChart(T lastPoint, T curPoint, double lastX, double curX, Size size,
-      Canvas canvas);
+  // void drawChart(T lastPoint, T curPoint, double lastX, double curX, Size size,
+  //     Canvas canvas);
+
+  void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
+      double curX, Size size, Canvas canvas);
+  void drawText(Canvas canvas, KLineEntity data, double x);
 
   void drawLine(double? lastPrice, double? curPrice, Canvas canvas,
       double lastX, double curX, Color color) {

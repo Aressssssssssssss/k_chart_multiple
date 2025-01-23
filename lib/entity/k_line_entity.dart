@@ -39,6 +39,12 @@ class KLineEntity extends KEntity {
     time = tempTime;
     ratio = json['ratio']?.toDouble();
     change = json['change']?.toDouble();
+
+    // 如果后端也返回了 'pdi', 'mdi', 'adx', 'adxr' 字段:
+    pdi = json['pdi']?.toDouble();
+    mdi = json['mdi']?.toDouble();
+    adx = json['adx']?.toDouble();
+    adxr = json['adxr']?.toDouble();
   }
 
   Map<String, dynamic> toJson() {
@@ -52,6 +58,13 @@ class KLineEntity extends KEntity {
     data['amount'] = this.amount;
     data['ratio'] = this.ratio;
     data['change'] = this.change;
+
+    // 如果需要把 DMI 字段也序列化
+    data['pdi'] = this.pdi;
+    data['mdi'] = this.mdi;
+    data['adx'] = this.adx;
+    data['adxr'] = this.adxr;
+
     return data;
   }
 

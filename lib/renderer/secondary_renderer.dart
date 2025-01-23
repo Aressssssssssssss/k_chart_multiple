@@ -2,11 +2,9 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../entity/macd_entity.dart';
-import '../k_chart_widget.dart' show SecondaryState;
-import 'base_chart_renderer.dart';
+import '../flutter_k_chart.dart';
 
-class SecondaryRenderer extends BaseChartRenderer<MACDEntity> {
+class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   late double mMACDWidth;
   SecondaryState state;
   final ChartStyle chartStyle;
@@ -38,9 +36,21 @@ class SecondaryRenderer extends BaseChartRenderer<MACDEntity> {
   }
 
   @override
-  void drawChart(MACDEntity lastPoint, MACDEntity curPoint, double lastX,
+  void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.DMI:
+        // 画pdi、mdi、adx (以及adxr)
+        drawLine(lastPoint.pdi, curPoint.pdi, canvas, lastX, curX,
+            chartColors.dmiPdiColor);
+        drawLine(lastPoint.mdi, curPoint.mdi, canvas, lastX, curX,
+            chartColors.dmiMdiColor);
+        drawLine(lastPoint.adx, curPoint.adx, canvas, lastX, curX,
+            chartColors.dmiAdxColor);
+        // 如果还有 adxr
+        drawLine(lastPoint.adxr, curPoint.adxr, canvas, lastX, curX,
+            chartColors.dmiAdxrColor);
+        break;
       case SecondaryState.MACD:
         drawMACD(curPoint, canvas, curX, lastPoint, lastX);
         break;
@@ -93,9 +103,37 @@ class SecondaryRenderer extends BaseChartRenderer<MACDEntity> {
   }
 
   @override
-  void drawText(Canvas canvas, MACDEntity data, double x) {
+  void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.DMI:
+        children = [
+          TextSpan(
+            text: "DMI(14):  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+          if (data.pdi != null)
+            TextSpan(
+              text: "PDI:${format(data.pdi)}  ",
+              style: getTextStyle(chartColors.dmiPdiColor),
+            ),
+          if (data.mdi != null)
+            TextSpan(
+              text: "MDI:${format(data.mdi)}  ",
+              style: getTextStyle(chartColors.dmiMdiColor),
+            ),
+          if (data.adx != null)
+            TextSpan(
+              text: "ADX:${format(data.adx)}  ",
+              style: getTextStyle(chartColors.dmiAdxColor),
+            ),
+          if (data.adxr != null)
+            TextSpan(
+              text: "ADXR:${format(data.adxr)}  ",
+              style: getTextStyle(chartColors.dmiAdxrColor),
+            ),
+        ];
+        break;
       case SecondaryState.MACD:
         children = [
           TextSpan(

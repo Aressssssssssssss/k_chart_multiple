@@ -185,6 +185,13 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.CCI); // 添加选中
           }
         }),
+        button("Secondary Chart:DMI", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.DMI)) {
+            _secondaryStates.remove(SecondaryState.DMI); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.DMI); // 添加选中
+          }
+        }),
         button("Secondary Chart:Hide", onPressed: () {
           _secondaryStates.clear();
         }),

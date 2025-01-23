@@ -5,6 +5,7 @@ import 'rsi_entity.dart';
 import 'rw_entity.dart';
 import 'volume_entity.dart';
 import 'cci_entity.dart';
+import 'dmi_entity.dart'; // 新增
 
 class KEntity
     with
@@ -14,4 +15,5 @@ class KEntity
         RSIEntity,
         WREntity,
         CCIEntity,
-        MACDEntity {}
+        MACDEntity,
+        DMIEntity {}

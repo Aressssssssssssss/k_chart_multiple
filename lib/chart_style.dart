@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show Color;
+import 'package:flutter/material.dart' show Color, Colors;
 
 class ChartColors {
   List<Color> bgColor = [Color(0xff18191d), Color(0xff18191d)];
@@ -64,6 +64,18 @@ class ChartColors {
         return ma5Color;
     }
   }
+
+  /// DMI: +DI (pdi)
+  Color dmiPdiColor = Colors.orange;
+
+  /// DMI: -DI (mdi)
+  Color dmiMdiColor = Colors.cyan;
+
+  /// DMI: ADX
+  Color dmiAdxColor = Colors.pink;
+
+  /// DMI: ADXR
+  Color dmiAdxrColor = Colors.purple;
 }
 
 class ChartStyle {

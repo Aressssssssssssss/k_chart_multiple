@@ -237,9 +237,98 @@ abstract class BaseChartPainter extends CustomPainter {
     print('[initRect] Secondary Rect: $mSecondaryRect');
   }
 
+  void _computeDMI(List<KLineEntity> data, {int period = 14}) {
+    if (data.isEmpty) return;
+
+    double tr14 = 0; // 14周期的 TR 平滑
+    double plusDM14 = 0; // 14周期的 +DM 平滑
+    double minusDM14 = 0; // 14周期的 -DM 平滑
+
+    // 第一个点无法算DMI，先记录当前值
+    double prevHigh = data[0].high;
+    double prevLow = data[0].low;
+    double prevClose = data[0].close;
+
+    // 让第0条暂时为 0
+    data[0].pdi = 0;
+    data[0].mdi = 0;
+    data[0].adx = 0;
+    data[0].adxr = 0;
+
+    for (int i = 1; i < data.length; i++) {
+      final cur = data[i];
+      final curHigh = cur.high;
+      final curLow = cur.low;
+
+      // ============ 1) 计算 +DM / -DM ============
+      double upMove = curHigh - prevHigh;
+      double downMove = prevLow - curLow;
+      double plusDM = 0, minusDM = 0;
+      if (upMove > downMove && upMove > 0) {
+        plusDM = upMove;
+      }
+      if (downMove > upMove && downMove > 0) {
+        minusDM = downMove;
+      }
+
+      // ============ 2) 计算 TR ============
+      double range1 = (curHigh - curLow).abs();
+      double range2 = (curHigh - prevClose).abs();
+      double range3 = (curLow - prevClose).abs();
+      double tr = [range1, range2, range3].reduce((a, b) => a > b ? a : b);
+
+      // ============ 3) Wilder 平滑处理 ============
+      if (i == 1) {
+        // 初始化
+        tr14 = tr;
+        plusDM14 = plusDM;
+        minusDM14 = minusDM;
+      } else {
+        tr14 = tr14 - (tr14 / period) + tr;
+        plusDM14 = plusDM14 - (plusDM14 / period) + plusDM;
+        minusDM14 = minusDM14 - (minusDM14 / period) + minusDM;
+      }
+
+      // ============ 4) +DI / -DI ============
+      double plusDI = tr14 == 0 ? 0 : (100 * plusDM14 / tr14);
+      double minusDI = tr14 == 0 ? 0 : (100 * minusDM14 / tr14);
+
+      // ============ 5) 计算当日 DX ============
+      double sumDI = plusDI + minusDI;
+      double diffDI = (plusDI - minusDI).abs();
+      double dx = sumDI == 0 ? 0 : (100 * diffDI / sumDI);
+
+      // ============ 6) 平滑 ADX ============
+      if (i == 1) {
+        cur.adx = dx; // 第二条先初始化
+      } else {
+        double prevAdx = data[i - 1].adx ?? 0;
+        cur.adx = ((prevAdx * (period - 1)) + dx) / period;
+      }
+
+      // ============ 如果还需 ADXR, 这里或单独一轮再算 ============
+
+      // 存到 KLineEntity
+      cur.pdi = plusDI;
+      cur.mdi = minusDI;
+      // cur.adxr = ...
+
+      // 记录上一条
+      prevHigh = curHigh;
+      prevLow = curLow;
+      prevClose = cur.close;
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    // 如果用户配置了要显示DMI，则先计算DMI
+    if (secondaryStates.contains(SecondaryState.DMI)) {
+      _computeDMI(datas!); // period可自定义
+    }
+
     maxScrollX = getMinTranslateX().abs();
     setTranslateXFromScrollX(scrollX);
     mStartIndex = indexOfTranslateX(xToTranslateX(0));
@@ -256,7 +345,27 @@ abstract class BaseChartPainter extends CustomPainter {
         double newMax = oldMax;
         double newMin = oldMin;
 
-        if (st == SecondaryState.MACD) {
+        if (st == SecondaryState.DMI) {
+          // pdi, mdi, adx, adxr
+          if (item.pdi != null && item.mdi != null && item.adx != null) {
+            // 这里假设你还需要adxr，可以一起写，否则省略
+            newMax = [
+              oldMax,
+              item.pdi!,
+              item.mdi!,
+              item.adx!,
+              if (item.adxr != null) item.adxr!
+            ].reduce((a, b) => a > b ? a : b);
+
+            newMin = [
+              oldMin,
+              item.pdi!,
+              item.mdi!,
+              item.adx!,
+              if (item.adxr != null) item.adxr!
+            ].reduce((a, b) => a < b ? a : b);
+          }
+        } else if (st == SecondaryState.MACD) {
           // item.macd, item.dif, item.dea
           if (item.macd != null && item.dif != null && item.dea != null) {
             newMax = [oldMax, item.macd!, item.dif!, item.dea!]
