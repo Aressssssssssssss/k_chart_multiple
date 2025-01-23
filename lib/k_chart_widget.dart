@@ -28,8 +28,9 @@ class KChartWidget extends StatefulWidget {
   final List<KLineEntity>? datas;
   final MainState mainState;
   final bool volHidden;
-  final SecondaryState secondaryState;
-  final Function()? onSecondaryTap;
+  final bool isShowMainState;
+  final List<SecondaryState> secondaryStates;
+  final Function(int)? onSecondaryTap;
   final bool isLine;
   final bool isTapShowInfoDialog; //是否开启单击显示详情数据
   final bool hideGrid;
@@ -54,16 +55,15 @@ class KChartWidget extends StatefulWidget {
   final ChartStyle chartStyle;
   final VerticalTextAlignment verticalTextAlignment;
   final bool isTrendLine;
-  final double xFrontPadding;
 
   KChartWidget(
     this.datas,
     this.chartStyle,
     this.chartColors, {
     required this.isTrendLine,
-    this.xFrontPadding = 100,
     this.mainState = MainState.MA,
-    this.secondaryState = SecondaryState.MACD,
+    this.isShowMainState = true,
+    this.secondaryStates = const [SecondaryState.MACD],
     this.onSecondaryTap,
     this.volHidden = false,
     this.isLine = false,
@@ -105,6 +105,8 @@ class _KChartWidgetState extends State<KChartWidget>
   bool waitingForOtherPairofCords = false;
   bool enableCordRecord = false;
 
+  late List<SecondaryState> secondaryStates;
+
   double getMinScrollX() {
     return mScaleX;
   }
@@ -115,6 +117,7 @@ class _KChartWidgetState extends State<KChartWidget>
   @override
   void initState() {
     super.initState();
+    secondaryStates = widget.secondaryStates; // 从 widget 获取 secondaryStates
     mInfoWindowStream = StreamController<InfoWindowEntity?>();
   }
 
@@ -140,7 +143,6 @@ class _KChartWidgetState extends State<KChartWidget>
       widget.chartStyle,
       widget.chartColors,
       lines: lines, //For TrendLine
-      xFrontPadding: widget.xFrontPadding,
       isTrendLine: widget.isTrendLine, //For TrendLine
       selectY: mSelectY, //For TrendLine
       datas: widget.datas,
@@ -152,7 +154,8 @@ class _KChartWidgetState extends State<KChartWidget>
       isTapShowInfoDialog: widget.isTapShowInfoDialog,
       mainState: widget.mainState,
       volHidden: widget.volHidden,
-      secondaryState: widget.secondaryState,
+      isShowMainState: widget.isShowMainState,
+      secondaryStates: widget.secondaryStates,
       isLine: widget.isLine,
       hideGrid: widget.hideGrid,
       showNowPrice: widget.showNowPrice,
@@ -169,18 +172,21 @@ class _KChartWidgetState extends State<KChartWidget>
 
         return GestureDetector(
           onTapUp: (details) {
-            if (!widget.isTrendLine &&
-                widget.onSecondaryTap != null &&
-                _painter.isInSecondaryRect(details.localPosition)) {
-              widget.onSecondaryTap!();
+            if (widget.onSecondaryTap != null) {
+              for (int i = 0; i < secondaryStates.length; i++) {
+                if (_painter.isInSecondaryRect(details.localPosition)) {
+                  widget.onSecondaryTap!(i);
+                  break;
+                }
+              }
             }
 
             if (!widget.isTrendLine &&
                 _painter.isInMainRect(details.localPosition)) {
               isOnTap = true;
-              if (mSelectX != details.localPosition.dx &&
+              if (mSelectX != details.globalPosition.dx &&
                   widget.isTapShowInfoDialog) {
-                mSelectX = details.localPosition.dx;
+                mSelectX = details.globalPosition.dx;
                 notifyChanged();
               }
             }
@@ -205,6 +211,7 @@ class _KChartWidgetState extends State<KChartWidget>
           onHorizontalDragDown: (details) {
             isOnTap = false;
             _stopAnimation();
+
             _onDragChanged(true);
           },
           onHorizontalDragUpdate: (details) {
@@ -224,6 +231,10 @@ class _KChartWidgetState extends State<KChartWidget>
           },
           onScaleUpdate: (details) {
             if (isDrag || isLongPress) return;
+
+            // double newScaleX = (mScaleX * details.scale).clamp(0.5, 2.0);
+            // widget.scaleNotifier.value = newScaleX; // 更新全局缩放值
+
             mScaleX = (_lastScale * details.scale).clamp(0.5, 2.2);
             notifyChanged();
           },
@@ -234,37 +245,38 @@ class _KChartWidgetState extends State<KChartWidget>
           onLongPressStart: (details) {
             isOnTap = false;
             isLongPress = true;
-            if ((mSelectX != details.localPosition.dx ||
+            if ((mSelectX != details.globalPosition.dx ||
                     mSelectY != details.globalPosition.dy) &&
                 !widget.isTrendLine) {
-              mSelectX = details.localPosition.dx;
+              mSelectX = details.globalPosition.dx;
               notifyChanged();
             }
             //For TrendLine
             if (widget.isTrendLine && changeinXposition == null) {
-              mSelectX = changeinXposition = details.localPosition.dx;
+              mSelectX = changeinXposition = details.globalPosition.dx;
               mSelectY = changeinYposition = details.globalPosition.dy;
               notifyChanged();
             }
             //For TrendLine
             if (widget.isTrendLine && changeinXposition != null) {
-              changeinXposition = details.localPosition.dx;
+              changeinXposition = details.globalPosition.dx;
               changeinYposition = details.globalPosition.dy;
               notifyChanged();
             }
+            print('[onLongPressStart] SelectX: $mSelectX, SelectY: $mSelectY');
           },
           onLongPressMoveUpdate: (details) {
-            if ((mSelectX != details.localPosition.dx ||
+            if ((mSelectX != details.globalPosition.dx ||
                     mSelectY != details.globalPosition.dy) &&
                 !widget.isTrendLine) {
-              mSelectX = details.localPosition.dx;
+              mSelectX = details.globalPosition.dx;
               mSelectY = details.localPosition.dy;
               notifyChanged();
             }
             if (widget.isTrendLine) {
               mSelectX =
-                  mSelectX + (details.localPosition.dx - changeinXposition!);
-              changeinXposition = details.localPosition.dx;
+                  mSelectX + (details.globalPosition.dx - changeinXposition!);
+              changeinXposition = details.globalPosition.dx;
               mSelectY =
                   mSelectY + (details.globalPosition.dy - changeinYposition!);
               changeinYposition = details.globalPosition.dy;

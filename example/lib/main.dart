@@ -35,7 +35,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool showLoading = true;
   MainState _mainState = MainState.MA;
   bool _volHidden = false;
-  SecondaryState _secondaryState = SecondaryState.MACD;
+  List<SecondaryState> _secondaryStates = [SecondaryState.MACD];
   bool isLine = true;
   bool isChinese = true;
   bool _hideGrid = false;
@@ -106,13 +106,10 @@ class _MyHomePageState extends State<MyHomePage> {
               chartStyle,
               chartColors,
               isLine: isLine,
-              onSecondaryTap: () {
-                print('Secondary Tap');
-              },
               isTrendLine: _isTrendLine,
               mainState: _mainState,
               volHidden: _volHidden,
-              secondaryState: _secondaryState,
+              secondaryStates: _secondaryStates,
               fixedLength: 2,
               timeFormat: TimeFormat.YEAR_MONTH_DAY,
               translations: kChartTranslations,
@@ -153,18 +150,44 @@ class _MyHomePageState extends State<MyHomePage> {
         button("Line:MA", onPressed: () => _mainState = MainState.MA),
         button("Line:BOLL", onPressed: () => _mainState = MainState.BOLL),
         button("Hide Line", onPressed: () => _mainState = MainState.NONE),
-        button("Secondary Chart:MACD",
-            onPressed: () => _secondaryState = SecondaryState.MACD),
-        button("Secondary Chart:KDJ",
-            onPressed: () => _secondaryState = SecondaryState.KDJ),
-        button("Secondary Chart:RSI",
-            onPressed: () => _secondaryState = SecondaryState.RSI),
-        button("Secondary Chart:WR",
-            onPressed: () => _secondaryState = SecondaryState.WR),
-        button("Secondary Chart:CCI",
-            onPressed: () => _secondaryState = SecondaryState.CCI),
-        button("Secondary Chart:Hide",
-            onPressed: () => _secondaryState = SecondaryState.NONE),
+        button("Secondary Chart:MACD", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.MACD)) {
+            _secondaryStates.remove(SecondaryState.MACD); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.MACD); // 添加选中
+          }
+        }),
+        button("Secondary Chart:KDJ", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.KDJ)) {
+            _secondaryStates.remove(SecondaryState.KDJ); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.KDJ); // 添加选中
+          }
+        }),
+        button("Secondary Chart:RSI", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.RSI)) {
+            _secondaryStates.remove(SecondaryState.RSI); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.RSI); // 添加选中
+          }
+        }),
+        button("Secondary Chart:WR", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.WR)) {
+            _secondaryStates.remove(SecondaryState.WR); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.WR); // 添加选中
+          }
+        }),
+        button("Secondary Chart:CCI", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.CCI)) {
+            _secondaryStates.remove(SecondaryState.CCI); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.CCI); // 添加选中
+          }
+        }),
+        button("Secondary Chart:Hide", onPressed: () {
+          _secondaryStates.clear();
+        }),
         button(_volHidden ? "Show Vol" : "Hide Vol",
             onPressed: () => _volHidden = !_volHidden),
         button("Change Language", onPressed: () => isChinese = !isChinese),
@@ -190,13 +213,13 @@ class _MyHomePageState extends State<MyHomePage> {
         }),
         button("Change PriceTextPaint",
             onPressed: () => setState(() {
-              _priceLeft = !_priceLeft;
-              if (_priceLeft) {
-                _verticalTextAlignment = VerticalTextAlignment.left;
-              } else {
-                _verticalTextAlignment = VerticalTextAlignment.right;
-              }
-            })),
+                  _priceLeft = !_priceLeft;
+                  if (_priceLeft) {
+                    _verticalTextAlignment = VerticalTextAlignment.left;
+                  } else {
+                    _verticalTextAlignment = VerticalTextAlignment.right;
+                  }
+                })),
       ],
     );
   }
@@ -211,7 +234,7 @@ class _MyHomePageState extends State<MyHomePage> {
       },
       child: Text(text),
       style: TextButton.styleFrom(
-        primary: Colors.white,
+        foregroundColor: Colors.white,
         minimumSize: const Size(88, 44),
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         shape: const RoundedRectangleBorder(
@@ -226,7 +249,7 @@ class _MyHomePageState extends State<MyHomePage> {
     /*
      * 可以翻墙使用方法1加载数据，不可以翻墙使用方法2加载数据，默认使用方法1加载最新数据
      */
-    final Future<String> future = getChatDataFromInternet(period);
+    final Future<String> future = getChatDataFromJson();
     //final Future<String> future = getChatDataFromJson();
     future.then((String result) {
       solveChatData(result);

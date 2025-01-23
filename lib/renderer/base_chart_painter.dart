@@ -15,8 +15,9 @@ abstract class BaseChartPainter extends CustomPainter {
   static double maxScrollX = 0.0;
   List<KLineEntity>? datas;
   MainState mainState;
-
-  SecondaryState secondaryState;
+  bool isShowMainState;
+  // SecondaryState secondaryState;
+  final List<SecondaryState> secondaryStates; // 替换原有单一字段
 
   bool volHidden;
   bool isTapShowInfoDialog;
@@ -34,8 +35,13 @@ abstract class BaseChartPainter extends CustomPainter {
   int mStartIndex = 0, mStopIndex = 0;
   double mMainMaxValue = double.minPositive, mMainMinValue = double.maxFinite;
   double mVolMaxValue = double.minPositive, mVolMinValue = double.maxFinite;
-  double mSecondaryMaxValue = double.minPositive,
-      mSecondaryMinValue = double.maxFinite;
+  // double mSecondaryMaxValue = double.minPositive,
+  //     mSecondaryMinValue = double.maxFinite;
+
+  // 用一个 Map<SecondaryState, double> 来存取相应的max/min
+  late Map<SecondaryState, double> mSecondaryMaxMap;
+  late Map<SecondaryState, double> mSecondaryMinMap;
+
   double mTranslateX = double.minPositive;
   int mMainMaxIndex = 0, mMainMinIndex = 0;
   double mMainHighMaxValue = double.minPositive,
@@ -45,7 +51,6 @@ abstract class BaseChartPainter extends CustomPainter {
   final ChartStyle chartStyle;
   late double mPointWidth;
   List<String> mFormats = [yyyy, '-', mm, '-', dd, ' ', HH, ':', nn]; //格式化时间
-  double xFrontPadding;
 
   BaseChartPainter(
     this.chartStyle, {
@@ -54,12 +59,14 @@ abstract class BaseChartPainter extends CustomPainter {
     required this.scrollX,
     required this.isLongPress,
     required this.selectX,
-    required this.xFrontPadding,
     this.isOnTap = false,
+    this.isShowMainState = true,
     this.mainState = MainState.MA,
     this.volHidden = false,
     this.isTapShowInfoDialog = false,
-    this.secondaryState = SecondaryState.MACD,
+    // this.secondaryState = SecondaryState.MACD,
+    this.secondaryStates = const [SecondaryState.MACD], // 初始化为默认值
+
     this.isLine = false,
   }) {
     mItemCount = datas?.length ?? 0;
@@ -70,6 +77,13 @@ abstract class BaseChartPainter extends CustomPainter {
     mGridRows = this.chartStyle.gridRows;
     mGridColumns = this.chartStyle.gridColumns;
     mDataLen = mItemCount * mPointWidth;
+    // 针对每种 secondaryState 初始化默认的 max/min
+    mSecondaryMaxMap = {};
+    mSecondaryMinMap = {};
+    for (final st in secondaryStates) {
+      mSecondaryMaxMap[st] = double.minPositive;
+      mSecondaryMinMap[st] = double.maxFinite;
+    }
     initFormats();
   }
 
@@ -160,30 +174,71 @@ abstract class BaseChartPainter extends CustomPainter {
   //交叉线值
   void drawCrossLineText(Canvas canvas, Size size);
 
+  // void initRect(Size size) {
+  //   double volHeight = volHidden != true ? mDisplayHeight * 0.2 : 0;
+  //   // double secondaryHeight = secondaryState != SecondaryState.NONE ? mDisplayHeight * 0.2 : 0;
+  //   double secondaryHeight =
+  //       secondaryStates.isNotEmpty ? mDisplayHeight * 0.2 : 0;
+
+  //   // double mainHeight = mDisplayHeight;
+  //   // mainHeight -= volHeight;
+  //   // mainHeight -= secondaryHeight;
+  //   double mainHeight =
+  //       mDisplayHeight - volHeight - (secondaryHeight * secondaryStates.length);
+
+  //   mMainRect = Rect.fromLTRB(0, mTopPadding, mWidth, mTopPadding + mainHeight);
+
+  //   if (volHidden != true) {
+  //     mVolRect = Rect.fromLTRB(0, mMainRect.bottom + mChildPadding, mWidth,
+  //         mMainRect.bottom + volHeight);
+  //   }
+
+  //   //secondaryState == SecondaryState.NONE隐藏副视图
+  //   if (secondaryStates.isNotEmpty) {
+  //     mSecondaryRect = Rect.fromLTRB(
+  //         0,
+  //         mMainRect.bottom + volHeight + mChildPadding,
+  //         mWidth,
+  //         mMainRect.bottom + volHeight + secondaryHeight);
+  //   }
+
+  //   // 添加日志
+  //   print('[initRect] Main Rect: $mMainRect');
+  //   print('[initRect] Vol Rect: $mVolRect');
+  //   print('[initRect] Secondary Rect: $mSecondaryRect');
+  // }
+
   void initRect(Size size) {
     double volHeight = volHidden != true ? mDisplayHeight * 0.2 : 0;
     double secondaryHeight =
-        secondaryState != SecondaryState.NONE ? mDisplayHeight * 0.2 : 0;
+        secondaryStates.isNotEmpty ? mDisplayHeight * 0.2 : 0;
 
-    double mainHeight = mDisplayHeight;
-    mainHeight -= volHeight;
-    mainHeight -= secondaryHeight;
+    // 主图表高度计算
+    double mainHeight =
+        mDisplayHeight - volHeight - (secondaryHeight * secondaryStates.length);
 
+    // 主图表区域
     mMainRect = Rect.fromLTRB(0, mTopPadding, mWidth, mTopPadding + mainHeight);
 
+    // 成交量图表区域
     if (volHidden != true) {
       mVolRect = Rect.fromLTRB(0, mMainRect.bottom + mChildPadding, mWidth,
           mMainRect.bottom + volHeight);
     }
 
-    //secondaryState == SecondaryState.NONE隐藏副视图
-    if (secondaryState != SecondaryState.NONE) {
+    // 副图区域
+    if (secondaryStates.isNotEmpty) {
       mSecondaryRect = Rect.fromLTRB(
           0,
-          mMainRect.bottom + volHeight + mChildPadding,
+          mVolRect?.bottom ?? mMainRect.bottom + mChildPadding,
           mWidth,
-          mMainRect.bottom + volHeight + secondaryHeight);
+          (mVolRect?.bottom ?? mMainRect.bottom) + secondaryHeight);
     }
+
+    // 添加日志
+    print('[initRect] Main Rect: $mMainRect');
+    print('[initRect] Vol Rect: $mVolRect');
+    print('[initRect] Secondary Rect: $mSecondaryRect');
   }
 
   calculateValue() {
@@ -197,7 +252,52 @@ abstract class BaseChartPainter extends CustomPainter {
       var item = datas![i];
       getMainMaxMinValue(item, i);
       getVolMaxMinValue(item);
-      getSecondaryMaxMinValue(item);
+      // getSecondaryMaxMinValue(item);
+      // 3）更新每个 SecondaryState 的最大最小值
+      for (final st in secondaryStates) {
+        double oldMax = mSecondaryMaxMap[st] ?? double.minPositive;
+        double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
+        double newMax = oldMax;
+        double newMin = oldMin;
+
+        if (st == SecondaryState.MACD) {
+          // item.macd, item.dif, item.dea
+          if (item.macd != null && item.dif != null && item.dea != null) {
+            newMax = [oldMax, item.macd!, item.dif!, item.dea!]
+                .reduce((a, b) => a > b ? a : b);
+            newMin = [oldMin, item.macd!, item.dif!, item.dea!]
+                .reduce((a, b) => a < b ? a : b);
+          }
+        } else if (st == SecondaryState.KDJ) {
+          // item.k, item.d, item.j
+          if (item.k != null && item.d != null && item.j != null) {
+            newMax = [oldMax, item.k!, item.d!, item.j!]
+                .reduce((a, b) => a > b ? a : b);
+            newMin = [oldMin, item.k!, item.d!, item.j!]
+                .reduce((a, b) => a < b ? a : b);
+          }
+        } else if (st == SecondaryState.RSI) {
+          // item.rsi
+          if (item.rsi != null) {
+            newMax = newMax > item.rsi! ? newMax : item.rsi!;
+            newMin = newMin < item.rsi! ? newMin : item.rsi!;
+          }
+        } else if (st == SecondaryState.WR) {
+          // WR 通常范围 [-100, 0], 也可自行判定
+          newMax = newMax > 0 ? newMax : 0;
+          newMin = newMin < -100 ? newMin : -100;
+        } else if (st == SecondaryState.CCI) {
+          if (item.cci != null) {
+            newMax = max(newMax, item.cci!);
+            newMin = min(newMin, item.cci!);
+          }
+        }
+        // 回写到 Map
+        mSecondaryMaxMap[st] = newMax;
+        mSecondaryMinMap[st] = newMin;
+
+        print('[getSecondaryMaxMinValue] Max: $newMax, Min: $newMin');
+      }
     }
   }
 
@@ -255,36 +355,51 @@ abstract class BaseChartPainter extends CustomPainter {
   }
 
   void getSecondaryMaxMinValue(KLineEntity item) {
-    if (secondaryState == SecondaryState.MACD) {
-      if (item.macd != null) {
-        mSecondaryMaxValue =
-            max(mSecondaryMaxValue, max(item.macd!, max(item.dif!, item.dea!)));
-        mSecondaryMinValue =
-            min(mSecondaryMinValue, min(item.macd!, min(item.dif!, item.dea!)));
+    for (var secondaryState in secondaryStates) {
+      print(
+          'State: $secondaryState, MACD: ${item.macd}, DIF: ${item.dif}, DEA: ${item.dea}');
+      print('Calculating SecondaryState: $secondaryState');
+      print('MACD: ${item.macd}, DIF: ${item.dif}, DEA: ${item.dea}');
+      print('KDJ: K=${item.k}, D=${item.d}, J=${item.j}');
+      print('RSI: ${item.rsi}, WR: ${item.r}, CCI: ${item.cci}');
+
+      double mSecondaryMaxValue = double.minPositive;
+      double mSecondaryMinValue = double.maxFinite;
+
+      if (secondaryState == SecondaryState.MACD) {
+        if (item.macd != null) {
+          mSecondaryMaxValue = max(
+              mSecondaryMaxValue, max(item.macd!, max(item.dif!, item.dea!)));
+          mSecondaryMinValue = min(
+              mSecondaryMinValue, min(item.macd!, min(item.dif!, item.dea!)));
+        }
+      } else if (secondaryState == SecondaryState.KDJ) {
+        if (item.d != null) {
+          mSecondaryMaxValue =
+              max(mSecondaryMaxValue, max(item.k!, max(item.d!, item.j!)));
+          mSecondaryMinValue =
+              min(mSecondaryMinValue, min(item.k!, min(item.d!, item.j!)));
+        }
+      } else if (secondaryState == SecondaryState.RSI) {
+        if (item.rsi != null) {
+          mSecondaryMaxValue = max(mSecondaryMaxValue, item.rsi!);
+          mSecondaryMinValue = min(mSecondaryMinValue, item.rsi!);
+        }
+      } else if (secondaryState == SecondaryState.WR) {
+        mSecondaryMaxValue = 0;
+        mSecondaryMinValue = -100;
+      } else if (secondaryState == SecondaryState.CCI) {
+        if (item.cci != null) {
+          mSecondaryMaxValue = max(mSecondaryMaxValue, item.cci!);
+          mSecondaryMinValue = min(mSecondaryMinValue, item.cci!);
+        }
+      } else {
+        mSecondaryMaxValue = 0;
+        mSecondaryMinValue = 0;
       }
-    } else if (secondaryState == SecondaryState.KDJ) {
-      if (item.d != null) {
-        mSecondaryMaxValue =
-            max(mSecondaryMaxValue, max(item.k!, max(item.d!, item.j!)));
-        mSecondaryMinValue =
-            min(mSecondaryMinValue, min(item.k!, min(item.d!, item.j!)));
-      }
-    } else if (secondaryState == SecondaryState.RSI) {
-      if (item.rsi != null) {
-        mSecondaryMaxValue = max(mSecondaryMaxValue, item.rsi!);
-        mSecondaryMinValue = min(mSecondaryMinValue, item.rsi!);
-      }
-    } else if (secondaryState == SecondaryState.WR) {
-      mSecondaryMaxValue = 0;
-      mSecondaryMinValue = -100;
-    } else if (secondaryState == SecondaryState.CCI) {
-      if (item.cci != null) {
-        mSecondaryMaxValue = max(mSecondaryMaxValue, item.cci!);
-        mSecondaryMinValue = min(mSecondaryMinValue, item.cci!);
-      }
-    } else {
-      mSecondaryMaxValue = 0;
-      mSecondaryMinValue = 0;
+      // 添加日志
+      print('[getSecondaryMaxMinValue] State: $secondaryState, '
+          'Max: $mSecondaryMaxValue, Min: $mSecondaryMinValue');
     }
   }
 
@@ -336,7 +451,7 @@ abstract class BaseChartPainter extends CustomPainter {
 
   ///获取平移的最小值
   double getMinTranslateX() {
-    var x = -mDataLen + mWidth / scaleX - mPointWidth / 2 - xFrontPadding;
+    var x = -mDataLen + mWidth / scaleX - mPointWidth / 2;
     return x >= 0 ? 0.0 : x;
   }
 

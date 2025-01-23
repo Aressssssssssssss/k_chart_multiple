@@ -12,7 +12,10 @@ class SecondaryRenderer extends BaseChartRenderer<MACDEntity> {
   final ChartStyle chartStyle;
   final ChartColors chartColors;
 
+  final Rect rect; // 添加 rect 属性
+
   SecondaryRenderer(
+      this.rect,
       Rect mainRect,
       double maxValue,
       double minValue,
@@ -22,12 +25,15 @@ class SecondaryRenderer extends BaseChartRenderer<MACDEntity> {
       this.chartStyle,
       this.chartColors)
       : super(
-            chartRect: mainRect,
-            maxValue: maxValue,
-            minValue: minValue,
-            topPadding: topPadding,
-            fixedLength: fixedLength,
-            gridColor: chartColors.gridColor,) {
+          // chartRect: mainRect,
+          chartRect: rect,
+
+          maxValue: maxValue,
+          minValue: minValue,
+          topPadding: topPadding,
+          fixedLength: fixedLength,
+          gridColor: chartColors.gridColor,
+        ) {
     mMACDWidth = this.chartStyle.macdWidth;
   }
 

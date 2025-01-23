@@ -11,6 +11,7 @@ import 'base_chart_renderer.dart';
 import 'main_renderer.dart';
 import 'secondary_renderer.dart';
 import 'vol_renderer.dart';
+import 'package:k_chart/k_chart_widget.dart';
 
 class TrendLine {
   final Offset p1;
@@ -34,7 +35,10 @@ class ChartPainter extends BaseChartPainter {
   final double selectY; //For TrendLine
   static get maxScrollX => BaseChartPainter.maxScrollX;
   late BaseChartRenderer mMainRenderer;
-  BaseChartRenderer? mVolRenderer, mSecondaryRenderer;
+  BaseChartRenderer? mVolRenderer; //, mSecondaryRenderer;
+  final List<SecondaryState> secondaryStates;
+  final List<SecondaryRenderer?> secondaryRenderers = []; // 存储多个次图渲染器
+
   StreamSink<InfoWindowEntity?>? sink;
   Color? upColor, dnColor;
   Color? ma5Color, ma10Color, ma30Color;
@@ -49,31 +53,29 @@ class ChartPainter extends BaseChartPainter {
   final bool showNowPrice;
   final VerticalTextAlignment verticalTextAlignment;
 
-  ChartPainter(
-    this.chartStyle,
-    this.chartColors, {
-    required this.lines, //For TrendLine
-    required this.isTrendLine, //For TrendLine
-    required this.selectY, //For TrendLine
-    required datas,
-    required scaleX,
-    required scrollX,
-    required isLongPass,
-    required selectX,
-    required xFrontPadding,
-    isOnTap,
-    isTapShowInfoDialog,
-    required this.verticalTextAlignment,
-    mainState,
-    volHidden,
-    secondaryState,
-    this.sink,
-    bool isLine = false,
-    this.hideGrid = false,
-    this.showNowPrice = true,
-    this.fixedLength = 2,
-    this.maDayList = const [5, 10, 20],
-  }) : super(chartStyle,
+  ChartPainter(this.chartStyle, this.chartColors,
+      {required this.lines, //For TrendLine
+      required this.isTrendLine, //For TrendLine
+      required this.selectY, //For TrendLine
+      required datas,
+      required scaleX,
+      required scrollX,
+      required isLongPass,
+      required selectX,
+      isOnTap,
+      isTapShowInfoDialog,
+      required this.verticalTextAlignment,
+      mainState,
+      volHidden,
+      isShowMainState,
+      required this.secondaryStates,
+      this.sink,
+      bool isLine = false,
+      this.hideGrid = false,
+      this.showNowPrice = true,
+      this.fixedLength = 2,
+      this.maDayList = const [5, 10, 20]})
+      : super(chartStyle,
             datas: datas,
             scaleX: scaleX,
             scrollX: scrollX,
@@ -83,8 +85,8 @@ class ChartPainter extends BaseChartPainter {
             selectX: selectX,
             mainState: mainState,
             volHidden: volHidden,
-            secondaryState: secondaryState,
-            xFrontPadding: xFrontPadding,
+            isShowMainState: isShowMainState,
+            secondaryStates: secondaryStates,
             isLine: isLine) {
     selectPointPaint = Paint()
       ..isAntiAlias = true
@@ -107,6 +109,14 @@ class ChartPainter extends BaseChartPainter {
       fixedLength =
           NumberUtil.getMaxDecimalLength(t.open, t.close, t.high, t.low);
     }
+
+    // 初始化主图表渲染器
+    if (isShowMainState) {
+      print('[initChartRenderer] Main Renderer Initialized');
+    } else {
+      mMainRect = Rect.fromLTRB(0, 0, 0, 0); // 主图表高度设置为 0
+    }
+
     mMainRenderer = MainRenderer(
       mMainRect,
       mMainMaxValue,
@@ -121,21 +131,49 @@ class ChartPainter extends BaseChartPainter {
       verticalTextAlignment,
       maDayList,
     );
+
     if (mVolRect != null) {
       mVolRenderer = VolRenderer(mVolRect!, mVolMaxValue, mVolMinValue,
           mChildPadding, fixedLength, this.chartStyle, this.chartColors);
+      print(
+          '[initChartRenderer] Volume Renderer Initialized: Rect = $mVolRect');
     }
-    if (mSecondaryRect != null) {
-      mSecondaryRenderer = SecondaryRenderer(
-          mSecondaryRect!,
-          mSecondaryMaxValue,
-          mSecondaryMinValue,
-          mChildPadding,
-          secondaryState,
-          fixedLength,
-          chartStyle,
-          chartColors);
+
+    secondaryRenderers.clear();
+    double secondaryTop =
+        mMainRect.bottom + (mVolRect?.height ?? 0) + mChildPadding;
+    for (int i = 0; i < secondaryStates.length; i++) {
+      Rect secondaryRect = Rect.fromLTRB(
+        0,
+        secondaryTop + i * (mDisplayHeight * 0.2 + mChildPadding) + 10,
+        mWidth,
+        secondaryTop + (i + 1) * mDisplayHeight * 0.2,
+      );
+
+      // 这里从BaseChartPainter里拿对应的 max/min Map
+      SecondaryState st = secondaryStates[i];
+      double secMax = mSecondaryMaxMap[st] ?? 0;
+      double secMin = mSecondaryMinMap[st] ?? 0;
+
+      SecondaryRenderer renderer = SecondaryRenderer(
+        secondaryRect,
+        secondaryRect,
+        secMax,
+        secMin,
+        mChildPadding,
+        secondaryStates[i],
+        fixedLength,
+        this.chartStyle,
+        this.chartColors,
+      );
+
+      secondaryRenderers.add(renderer);
+      print('[initChartRenderer] Initialized Secondary Renderer [$i]: '
+          'State: ${secondaryStates[i]}, Rect: $secondaryRect');
     }
+
+    print(
+        '[initChartRenderer] Secondary Renderers Count: ${secondaryRenderers.length}');
   }
 
   @override
@@ -146,10 +184,13 @@ class ChartPainter extends BaseChartPainter {
       end: Alignment.topCenter,
       colors: chartColors.bgColor,
     );
-    Rect mainRect =
-        Rect.fromLTRB(0, 0, mMainRect.width, mMainRect.height + mTopPadding);
-    canvas.drawRect(
-        mainRect, mBgPaint..shader = mBgGradient.createShader(mainRect));
+
+    if (isShowMainState) {
+      Rect mainRect =
+          Rect.fromLTRB(0, 0, mMainRect.width, mMainRect.height + mTopPadding);
+      canvas.drawRect(
+          mainRect, mBgPaint..shader = mBgGradient.createShader(mainRect));
+    }
 
     if (mVolRect != null) {
       Rect volRect = Rect.fromLTRB(
@@ -173,9 +214,15 @@ class ChartPainter extends BaseChartPainter {
   @override
   void drawGrid(canvas) {
     if (!hideGrid) {
-      mMainRenderer.drawGrid(canvas, mGridRows, mGridColumns);
-      mVolRenderer?.drawGrid(canvas, mGridRows, mGridColumns);
-      mSecondaryRenderer?.drawGrid(canvas, mGridRows, mGridColumns);
+      if (isShowMainState == true) {
+        mMainRenderer.drawGrid(canvas, mGridRows, mGridColumns);
+
+        mVolRenderer?.drawGrid(canvas, mGridRows, mGridColumns);
+      }
+      // mSecondaryRenderer?.drawGrid(canvas, mGridRows, mGridColumns);
+      for (int j = 0; j < secondaryRenderers.length; j++) {
+        secondaryRenderers[j]?.drawGrid(canvas, mGridRows, mGridColumns);
+      }
     }
   }
 
@@ -190,11 +237,27 @@ class ChartPainter extends BaseChartPainter {
       KLineEntity lastPoint = i == 0 ? curPoint : datas![i - 1];
       double curX = getX(i);
       double lastX = i == 0 ? curX : getX(i - 1);
+      if (isShowMainState == true) {
+        mMainRenderer.drawChart(lastPoint, curPoint, lastX, curX, size, canvas);
 
-      mMainRenderer.drawChart(lastPoint, curPoint, lastX, curX, size, canvas);
-      mVolRenderer?.drawChart(lastPoint, curPoint, lastX, curX, size, canvas);
-      mSecondaryRenderer?.drawChart(
-          lastPoint, curPoint, lastX, curX, size, canvas);
+        mVolRenderer?.drawChart(lastPoint, curPoint, lastX, curX, size, canvas);
+      }
+
+      for (int j = 0; j < secondaryRenderers.length; j++) {
+        print('[drawChart] Renderer [$j]: Drawing state ${secondaryStates[j]}');
+
+        secondaryRenderers[j]?.drawChart(
+          lastPoint,
+          curPoint,
+          lastX,
+          curX,
+          size,
+          canvas,
+        );
+        // 添加日志
+        print('[drawChart] Renderer [$j]: State = ${secondaryStates[j]}, '
+            'Rect = ${secondaryRenderers[j]?.rect}');
+      }
     }
 
     if ((isLongPress == true || (isTapShowInfoDialog && isOnTap)) &&
@@ -210,9 +273,14 @@ class ChartPainter extends BaseChartPainter {
     var textStyle = getTextStyle(this.chartColors.defaultTextColor);
     if (!hideGrid) {
       mMainRenderer.drawVerticalText(canvas, textStyle, mGridRows);
+
+      mVolRenderer?.drawVerticalText(canvas, textStyle, mGridRows);
     }
-    mVolRenderer?.drawVerticalText(canvas, textStyle, mGridRows);
-    mSecondaryRenderer?.drawVerticalText(canvas, textStyle, mGridRows);
+    // mSecondaryRenderer?.drawVerticalText(canvas, textStyle, mGridRows);
+
+    for (int j = 0; j < secondaryRenderers.length; j++) {
+      secondaryRenderers[j]?.drawVerticalText(canvas, textStyle, mGridRows);
+    }
   }
 
   @override
@@ -331,111 +399,59 @@ class ChartPainter extends BaseChartPainter {
       data = getItem(index);
     }
     //松开显示最后一条数据
-    mMainRenderer.drawText(canvas, data, x);
-    mVolRenderer?.drawText(canvas, data, x);
-    mSecondaryRenderer?.drawText(canvas, data, x);
+    if (isShowMainState == true) {
+      mMainRenderer.drawText(canvas, data, x);
+
+      mVolRenderer?.drawText(canvas, data, x);
+    }
+    // mSecondaryRenderer?.drawText(canvas, data, x);
+    for (final renderer in secondaryRenderers) {
+      renderer?.drawText(canvas, data, x);
+    }
   }
 
   @override
   void drawMaxAndMin(Canvas canvas) {
     if (isLine == true) return;
-    double lineSize = 20;
-    double lineToTextOffset = 5;
-
-    Paint linePaint = Paint()
-      ..strokeWidth = 1
-      ..color = chartColors.minColor;
-
+    if (isShowMainState == false) return;
     //绘制最大值和最小值
     double x = translateXtoX(getX(mMainMinIndex));
     double y = getMainY(mMainLowMinValue);
     if (x < mWidth / 2) {
       //画右边
       TextPainter tp = getTextPainter(
-        mMainLowMinValue.toStringAsFixed(fixedLength),
-        chartColors.minColor,
-      );
-
-      canvas.drawLine(
-        Offset(x, y),
-        Offset(x + lineSize, y),
-        linePaint,
-      );
-
-      tp.paint(
-        canvas,
-        Offset(
-          x + lineSize + lineToTextOffset,
-          y - tp.height / 2,
-        ),
-      );
+          "── " + mMainLowMinValue.toStringAsFixed(fixedLength),
+          chartColors.minColor);
+      tp.paint(canvas, Offset(x, y - tp.height / 2));
     } else {
       TextPainter tp = getTextPainter(
-        mMainLowMinValue.toStringAsFixed(fixedLength),
-        chartColors.minColor,
-      );
-
-      canvas.drawLine(
-        Offset(x, y),
-        Offset(x - lineSize, y),
-        linePaint,
-      );
-
-      tp.paint(
-        canvas,
-        Offset(
-          x - tp.width - lineSize - lineToTextOffset,
-          y - tp.height / 2,
-        ),
-      );
+          mMainLowMinValue.toStringAsFixed(fixedLength) + " ──",
+          chartColors.minColor);
+      tp.paint(canvas, Offset(x - tp.width, y - tp.height / 2));
     }
     x = translateXtoX(getX(mMainMaxIndex));
     y = getMainY(mMainHighMaxValue);
     if (x < mWidth / 2) {
       //画右边
       TextPainter tp = getTextPainter(
-        mMainHighMaxValue.toStringAsFixed(fixedLength),
-        chartColors.maxColor,
-      );
-
-      canvas.drawLine(
-        Offset(x, y),
-        Offset(x + lineSize, y),
-        linePaint,
-      );
-
-      tp.paint(
-        canvas,
-        Offset(
-          x + lineSize + lineToTextOffset,
-          y - tp.height / 2,
-        ),
-      );
+          "── " + mMainHighMaxValue.toStringAsFixed(fixedLength),
+          chartColors.maxColor);
+      tp.paint(canvas, Offset(x, y - tp.height / 2));
     } else {
       TextPainter tp = getTextPainter(
-        mMainHighMaxValue.toStringAsFixed(fixedLength),
-        chartColors.maxColor,
-      );
-
-      canvas.drawLine(
-        Offset(x, y),
-        Offset(x - lineSize, y),
-        linePaint,
-      );
-
-      tp.paint(
-        canvas,
-        Offset(
-          x - tp.width - lineSize - lineToTextOffset,
-          y - tp.height / 2,
-        ),
-      );
+          mMainHighMaxValue.toStringAsFixed(fixedLength) + " ──",
+          chartColors.maxColor);
+      tp.paint(canvas, Offset(x - tp.width, y - tp.height / 2));
     }
   }
 
   @override
   void drawNowPrice(Canvas canvas) {
     if (!this.showNowPrice) {
+      return;
+    }
+
+    if (!this.isShowMainState) {
       return;
     }
 
@@ -600,8 +616,17 @@ class ChartPainter extends BaseChartPainter {
   double getMainY(double y) => mMainRenderer.getY(y);
 
   /// 点是否在SecondaryRect中
+  // bool isInSecondaryRect(Offset point) {
+  //   return mSecondaryRect?.contains(point) ?? false;
+  // }
+
   bool isInSecondaryRect(Offset point) {
-    return mSecondaryRect?.contains(point) ?? false;
+    for (int i = 0; i < secondaryRenderers.length; i++) {
+      if (secondaryRenderers[i]?.rect.contains(point) ?? false) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// 点是否在MainRect中
