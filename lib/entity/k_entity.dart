@@ -5,6 +5,7 @@ import 'hv_entity.dart';
 import 'ichimoku_entity.dart';
 import 'kdj_entity.dart';
 import 'macd_entity.dart';
+import 'obv_entiry.dart';
 import 'ppo_entity.dart';
 import 'rsi_entity.dart';
 import 'rw_entity.dart';
@@ -36,4 +37,5 @@ class KEntity
         VORTEXEntity,
         ATREntiry,
         HVEntiry,
-        VWAPEntiry {}
+        VWAPEntiry,
+        OBVEntiry {}

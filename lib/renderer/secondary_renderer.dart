@@ -100,6 +100,16 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.OBV:
+        // 画OBV原始线
+        drawLine(lastPoint.obv, curPoint.obv, canvas, lastX, curX,
+            chartColors.obvColor);
+
+        // 画OBV平滑线
+        drawLine(lastPoint.obvEma, curPoint.obvEma, canvas, lastX, curX,
+            chartColors.obvEmaColor);
+        break;
+
       case SecondaryState.VWAP:
         drawLine(lastPoint.vwap, curPoint.vwap, canvas, lastX, curX,
             chartColors.vwapColor);
@@ -258,6 +268,35 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.OBV:
+        List<TextSpan> spans = [];
+        spans.add(
+          TextSpan(
+            text: "OBV(Vol), EMA(10)  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+        );
+        if (data.obv != null) {
+          spans.add(TextSpan(
+            text: "OBV:${format(data.obv)}  ",
+            style: getTextStyle(chartColors.obvColor),
+          ));
+        }
+        if (data.obvEma != null) {
+          spans.add(TextSpan(
+            text: "OBV-EMA:${format(data.obvEma)}  ",
+            style: getTextStyle(chartColors.obvEmaColor),
+          ));
+        }
+
+        TextPainter tp = TextPainter(
+          text: TextSpan(children: spans),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.VWAP:
         List<TextSpan> spans = [];
         spans.add(

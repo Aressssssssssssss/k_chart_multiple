@@ -1148,9 +1148,72 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算OBV(能量潮) + 对OBV再做EMA平滑(可选, periodObvEma)
+  /// [periodObvEma] 若为null或<=1, 表示不做平滑
+  void _computeOBVAdvanced(
+    List<KLineEntity> data, {
+    bool useFirstVolumeAsInitial = true,
+    int? periodObvEma = 10,
+  }) {
+    final length = data.length;
+    if (length == 0) return;
+
+    // 1) 基础 OBV
+    double obvPrev = useFirstVolumeAsInitial && length > 0 ? data[0].vol : 0;
+    if (length > 0) {
+      data[0].obv = obvPrev;
+    }
+
+    for (int i = 1; i < length; i++) {
+      final cur = data[i];
+      final prev = data[i - 1];
+
+      double obv = obvPrev; // 默认继承上一个
+
+      if (cur.close > prev.close) {
+        obv = obvPrev + cur.vol;
+      } else if (cur.close < prev.close) {
+        obv = obvPrev - cur.vol;
+      }
+      // else close相等 => obv不变
+
+      cur.obv = obv;
+      obvPrev = obv;
+    }
+
+    // 2) 对 OBV 做EMA平滑 (可选)
+    // periodObvEma=10为例, alpha=2/(10+1)=0.1818...
+    if (periodObvEma != null && periodObvEma > 1) {
+      final double alpha = 2.0 / (periodObvEma + 1);
+      data[0].obvEma = data[0].obv; // 初始化
+
+      for (int i = 1; i < length; i++) {
+        double prevEma = data[i - 1].obvEma ?? data[i - 1].obv ?? 0;
+        double curObv = data[i].obv ?? 0;
+        double newEma = prevEma + alpha * (curObv - prevEma);
+
+        // 防止NaN/Infinity
+        if (!newEma.isFinite) {
+          newEma = prevEma;
+        }
+        data[i].obvEma = newEma;
+      }
+    } else {
+      // 不做平滑, 直接把 obvEma = obv
+      for (int i = 0; i < length; i++) {
+        data[i].obvEma = data[i].obv;
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    if (secondaryStates.contains(SecondaryState.OBV)) {
+      // 假设想对OBV再做10周期EMA
+      _computeOBVAdvanced(datas!, periodObvEma: 10);
+    }
 
     // 若勾选了VWAP
     if (secondaryStates.contains(SecondaryState.VWAP)) {
@@ -1230,7 +1293,14 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.VWAP) {
+        if (st == SecondaryState.OBV) {
+          // 这里可纳入obvEma(更平滑) or obv(原始) 作为坐标
+          double? val = item.obvEma; // 优先看平滑
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.VWAP) {
           double? v = item.vwap;
           if (v != null && v.isFinite) {
             if (v > newMax) newMax = v;

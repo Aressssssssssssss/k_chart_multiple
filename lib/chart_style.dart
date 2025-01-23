@@ -110,6 +110,9 @@ class ChartColors {
   Color hvColor = Colors.deepOrange;
 
   Color vwapColor = Colors.blueAccent;
+
+  Color obvColor = Colors.blue; // OBV原始线
+  Color obvEmaColor = Colors.orange; // 对OBV平滑后的线
 }
 
 class ChartStyle {
