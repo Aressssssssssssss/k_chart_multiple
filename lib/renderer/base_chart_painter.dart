@@ -849,9 +849,75 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算 Aroon 指标
+  /// [period] 常见默认14
+  ///  - AroonUp = ((period - (i - idxOfRecentHigh)) / period)*100
+  ///  - AroonDown = ((period - (i - idxOfRecentLow)) / period)*100
+  ///  - AroonOsc = AroonUp - AroonDown (可选)
+  void _computeAroon(List<KLineEntity> data,
+      {int period = 14, bool calcOsc = true}) {
+    final length = data.length;
+    if (length < period) {
+      // 少于period，计算不出来或只给默认值
+      for (int i = 0; i < length; i++) {
+        data[i].aroonUp = 0;
+        data[i].aroonDown = 0;
+        if (calcOsc) data[i].aroonOsc = 0;
+      }
+      return;
+    }
+
+    for (int i = 0; i < length; i++) {
+      // 计算区间 [i - period + 1 .. i]，需判越界
+      int start = i - period + 1;
+      if (start < 0) start = 0; // 不够周期就从0开始
+      double highest = -double.infinity;
+      double lowest = double.infinity;
+      int idxHigh = i;
+      int idxLow = i;
+
+      // 在过去 period 根(或到0)里找最高价/最低价以及它们所在索引
+      for (int j = start; j <= i; j++) {
+        double h = data[j].high;
+        double l = data[j].low;
+        if (h > highest) {
+          highest = h;
+          idxHigh = j;
+        }
+        if (l < lowest) {
+          lowest = l;
+          idxLow = j;
+        }
+      }
+
+      // 计算 Up / Down
+      double up = 100.0 * (period - (i - idxHigh)) / period;
+      double down = 100.0 * (period - (i - idxLow)) / period;
+
+      // 防止溢出
+      if (!up.isFinite) up = 0;
+      if (!down.isFinite) down = 0;
+
+      data[i].aroonUp = up.clamp(0, 100); // 一般区间[0,100]
+      data[i].aroonDown = down.clamp(0, 100);
+
+      // 如果要 AroonOsc
+      if (calcOsc) {
+        double osc = up - down;
+        if (!osc.isFinite) osc = 0;
+        data[i].aroonOsc = osc;
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    // 如果勾选了 AROON
+    if (secondaryStates.contains(SecondaryState.AROON)) {
+      _computeAroon(datas!, period: 14, calcOsc: true);
+    }
 
     // 如果用户勾选了SAR
     if (secondaryStates.contains(SecondaryState.SAR)) {
@@ -908,7 +974,26 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.SAR) {
+        if (st == SecondaryState.AROON) {
+          // item.aroonUp, item.aroonDown, item.aroonOsc
+          double? up = item.aroonUp;
+          double? down = item.aroonDown;
+          double? osc = item.aroonOsc; // 若calcOsc=true
+
+          // 依次更新
+          if (up != null && up.isFinite) {
+            if (up > newMax) newMax = up;
+            if (up < newMin) newMin = up;
+          }
+          if (down != null && down.isFinite) {
+            if (down > newMax) newMax = down;
+            if (down < newMin) newMin = down;
+          }
+          if (osc != null && osc.isFinite) {
+            if (osc > newMax) newMax = osc;
+            if (osc < newMin) newMin = osc;
+          }
+        } else if (st == SecondaryState.SAR) {
           // 只存一条 psar
           final psarVal = item.psar;
           if (psarVal != null && psarVal.isFinite) {

@@ -19,6 +19,7 @@ enum SecondaryState {
   TSI,
   ICHIMOKU,
   SAR,
+  AROON,
   NONE
 }
 

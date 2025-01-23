@@ -100,6 +100,17 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.AROON:
+        // 画3条线
+        drawLine(lastPoint.aroonUp, curPoint.aroonUp, canvas, lastX, curX,
+            chartColors.aroonUpColor);
+        drawLine(lastPoint.aroonDown, curPoint.aroonDown, canvas, lastX, curX,
+            chartColors.aroonDownColor);
+        // Osc(可选)
+        drawLine(lastPoint.aroonOsc, curPoint.aroonOsc, canvas, lastX, curX,
+            chartColors.aroonOscColor);
+        break;
+
       case SecondaryState.SAR:
         // 画一条线 or 一系列点
         // 1) 你可以直接在 drawChart(lastPoint, curPoint) 里用 drawLine(...) or drawCircle(...)
@@ -225,6 +236,42 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.AROON:
+        List<TextSpan> spans = [];
+        spans.add(
+          TextSpan(
+            text: "Aroon(14)  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+        );
+
+        if (data.aroonUp != null) {
+          spans.add(TextSpan(
+            text: "Up:${format(data.aroonUp)}  ",
+            style: getTextStyle(chartColors.aroonUpColor),
+          ));
+        }
+        if (data.aroonDown != null) {
+          spans.add(TextSpan(
+            text: "Down:${format(data.aroonDown)}  ",
+            style: getTextStyle(chartColors.aroonDownColor),
+          ));
+        }
+        if (data.aroonOsc != null) {
+          spans.add(TextSpan(
+            text: "Osc:${format(data.aroonOsc)}  ",
+            style: getTextStyle(chartColors.aroonOscColor),
+          ));
+        }
+
+        TextPainter tp = TextPainter(
+          text: TextSpan(children: spans),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.SAR:
         List<TextSpan> spans = [];
         spans.add(

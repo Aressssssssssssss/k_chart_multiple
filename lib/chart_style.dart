@@ -97,6 +97,10 @@ class ChartColors {
   Color ichimokuCloudColor = Colors.green; // 纯色, 实际绘制时会 .withOpacity(0.2)
 
   Color sarColor = Colors.pink;
+
+  Color aroonUpColor = Colors.green;
+  Color aroonDownColor = Colors.red;
+  Color aroonOscColor = Colors.blue;
 }
 
 class ChartStyle {
