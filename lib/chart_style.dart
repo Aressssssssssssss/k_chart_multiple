@@ -115,6 +115,10 @@ class ChartColors {
   Color obvEmaColor = Colors.orange; // 对OBV平滑后的线
 
   Color adlColor = Colors.purple;
+
+  Color marketProfileColor = Colors.cyan; // 你喜欢的颜色
+
+  Color vixColor = Colors.pinkAccent;
 }
 
 class ChartStyle {

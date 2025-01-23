@@ -1238,9 +1238,64 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 用本地历史波动率当作"VIX"近似
+  /// 仅作演示，不代表真实CBOE VIX
+  void _computeVIXLocally(List<KLineEntity> data,
+      {int period = 14, double annualFactor = 252}) {
+    if (data.length < 2) return;
+
+    // 先算出 logReturns, 类似 HV
+    List<double> logReturns = List.filled(data.length, 0);
+    for (int i = 1; i < data.length; i++) {
+      double cPrev = data[i - 1].close;
+      double cCur = data[i].close;
+      if (cPrev <= 0 || cCur <= 0) {
+        logReturns[i] = 0;
+      } else {
+        double r = (cCur / cPrev).abs();
+        double lr = math.log(r);
+        if (!lr.isFinite) lr = 0;
+        logReturns[i] = lr;
+      }
+    }
+
+    // 计算 rolling 标准差 -> annualize -> (可再乘100)
+    for (int i = 0; i < data.length; i++) {
+      if (i < period) {
+        data[i].vix = 0;
+      } else {
+        int start = i - period + 1;
+        double sumR = 0;
+        for (int j = start; j <= i; j++) {
+          sumR += logReturns[j];
+        }
+        double meanR = sumR / period;
+        double sumVar = 0;
+        for (int j = start; j <= i; j++) {
+          double diff = logReturns[j] - meanR;
+          sumVar += diff * diff;
+        }
+        double variance = sumVar / (period - 1);
+        double stdDev = variance >= 0 ? math.sqrt(variance) : 0;
+        double localVIX =
+            stdDev * math.sqrt(annualFactor) * 100; // => 如 22.5表示22.5%
+
+        if (!localVIX.isFinite) localVIX = 0;
+        data[i].vix = localVIX;
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    // 如果用户勾选 VIX
+    if (secondaryStates.contains(SecondaryState.VIX)) {
+      // (A) 如果你有外部 vix 数据, 直接 item.vix 已经赋值完毕
+      // (B) 如果要本地近似 => 调用
+      _computeVIXLocally(datas!, period: 14);
+    }
 
     // 如果勾选了ADL
     if (secondaryStates.contains(SecondaryState.ADL)) {
@@ -1330,7 +1385,13 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.ADL) {
+        if (st == SecondaryState.VIX) {
+          double? v = item.vix;
+          if (v != null && v.isFinite) {
+            if (v > newMax) newMax = v;
+            if (v < newMin) newMin = v;
+          }
+        } else if (st == SecondaryState.ADL) {
           double? v = item.adl;
           if (v != null && v.isFinite) {
             if (v > newMax) newMax = v;
