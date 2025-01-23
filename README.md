@@ -1,35 +1,35 @@
-# k_chart
+# k_chart_multiple
 Maybe this is the best k chart in Flutter.Support drag,scale,long press,fling.And easy to use.
-Based on the https://github.com/OpenFlutter/k_chart
+Based on the https://github.com/OpenFlutter/k_chart_multiple
 Added support for multiple secondary chart and hiding main chart
 
 ## display
 
 #### image
 
-<img src="https://github.com/mafanwei/k_chart/blob/master/example/images/Screenshot1.jpg" width="375" alt="Screenshot"/>
+<img src="https://github.com/mafanwei/k_chart_multiple/blob/master/example/images/Screenshot1.jpg" width="375" alt="Screenshot"/>
 
-<img src="https://github.com/mafanwei/k_chart/blob/master/example/images/Screenshot2.jpg" width="375" alt="Screenshot"/>
+<img src="https://github.com/mafanwei/k_chart_multiple/blob/master/example/images/Screenshot2.jpg" width="375" alt="Screenshot"/>
 
-<img src="https://github.com/mafanwei/k_chart/blob/master/example/images/Screenshot3.jpeg" width="375" alt="Screenshot"/>
+<img src="https://github.com/mafanwei/k_chart_multiple/blob/master/example/images/Screenshot3.jpeg" width="375" alt="Screenshot"/>
 
 #### gif
 
-![demo](https://github.com/mafanwei/k_chart/blob/master/example/images/demo.gif)
+![demo](https://github.com/mafanwei/k_chart_multiple/blob/master/example/images/demo.gif)
 
-![demo](https://github.com/mafanwei/k_chart/blob/master/example/images/demo2.gif)
+![demo](https://github.com/mafanwei/k_chart_multiple/blob/master/example/images/demo2.gif)
 
 ## Getting Started
 #### Install
 ```
 dependencies:
-  k_chart: ^0.7.1
+  k_chart_multiple: ^0.7.1
 ```
 or use latest：
 ```
-k_chart:
+k_chart_multiple:
     git:
-      url: https://github.com/mafanwei/k_chart
+      url: https://github.com/mafanwei/k_chart_multiple
 ```
 #### Usage
 

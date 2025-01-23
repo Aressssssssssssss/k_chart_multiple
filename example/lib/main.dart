@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:k_chart/chart_translations.dart';
-import 'package:k_chart/flutter_k_chart.dart';
+import 'package:k_chart_multiple/chart_translations.dart';
+import 'package:k_chart_multiple/flutter_k_chart.dart';
 
 void main() => runApp(MyApp());
 

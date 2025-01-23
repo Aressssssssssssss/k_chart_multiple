@@ -1,17 +1,18 @@
 import 'dart:async' show StreamSink;
 
 import 'package:flutter/material.dart';
-import 'package:k_chart/utils/number_util.dart';
+import 'package:k_chart_multiple/utils/number_util.dart';
 
 import '../entity/info_window_entity.dart';
 import '../entity/k_line_entity.dart';
+import '../flutter_k_chart.dart';
 import '../utils/date_format_util.dart';
 import 'base_chart_painter.dart';
 import 'base_chart_renderer.dart';
 import 'main_renderer.dart';
 import 'secondary_renderer.dart';
 import 'vol_renderer.dart';
-import 'package:k_chart/k_chart_widget.dart';
+import 'package:k_chart_multiple/k_chart_widget.dart';
 
 class TrendLine {
   final Offset p1;
@@ -133,8 +134,14 @@ class ChartPainter extends BaseChartPainter {
     );
 
     if (mVolRect != null) {
-      mVolRenderer = VolRenderer(mVolRect!, mVolMaxValue, mVolMinValue,
-          mChildPadding, fixedLength, this.chartStyle, this.chartColors);
+      mVolRenderer = VolRenderer(
+          mVolRect!,
+          mVolMaxValue,
+          mVolMinValue,
+          mChildPadding,
+          fixedLength,
+          this.chartStyle,
+          this.chartColors) as BaseChartRenderer?;
       print(
           '[initChartRenderer] Volume Renderer Initialized: Rect = $mVolRect');
     }

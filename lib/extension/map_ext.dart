@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:k_chart/chart_translations.dart';
+import 'package:k_chart_multiple/chart_translations.dart';
 
 extension ChartTranslationsMap on Map<String, ChartTranslations> {
   ChartTranslations of(BuildContext context) {
