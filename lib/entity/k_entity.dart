@@ -12,6 +12,7 @@ import 'ppo_entity.dart';
 import 'rsi_entity.dart';
 import 'rw_entity.dart';
 import 'sar_entity.dart';
+import 'std_entiry.dart';
 import 'tsi_entity.dart';
 import 'vix_entiry.dart';
 import 'volume_entity.dart';
@@ -44,4 +45,5 @@ class KEntity
         OBVEntiry,
         ADLEntiry,
         VIXEntiry,
-        ADXEntiry {}
+        ADXEntiry,
+        STDEntiry {}

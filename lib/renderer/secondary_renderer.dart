@@ -100,6 +100,11 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.STDDEV:
+        drawLine(lastPoint.stdDev, curPoint.stdDev, canvas, lastX, curX,
+            chartColors.stdDevColor);
+        break;
+
       case SecondaryState.ADX:
         drawLine(lastPoint.adx, curPoint.adx, canvas, lastX, curX,
             chartColors.adxColor);
@@ -256,8 +261,8 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
     }
   }
 
-  void drawMACD(MACDEntity curPoint, Canvas canvas, double curX,
-      MACDEntity lastPoint, double lastX) {
+  void drawMACD(KLineEntity curPoint, Canvas canvas, double curX,
+      KLineEntity lastPoint, double lastX) {
     final macd = curPoint.macd ?? 0;
     double macdY = getY(macd);
     double r = mMACDWidth / 2;
@@ -277,12 +282,37 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
       drawLine(lastPoint.dea, curPoint.dea, canvas, lastX, curX,
           this.chartColors.deaColor);
     }
+    if (lastPoint.osma != 0) {
+      drawLine(lastPoint.osma, curPoint.osma, canvas, lastX, curX,
+          chartColors.osmaColor);
+    }
   }
 
   @override
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.STDDEV:
+        List<TextSpan> spans = [];
+        spans.add(TextSpan(
+          text: "StdDev(14)  ",
+          style: getTextStyle(chartColors.defaultTextColor),
+        ));
+        if (data.stdDev != null) {
+          spans.add(TextSpan(
+            text: "SD:${format(data.stdDev)}  ",
+            style: getTextStyle(chartColors.stdDevColor),
+          ));
+        }
+
+        TextPainter tp = TextPainter(
+          text: TextSpan(children: spans),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.ADX:
         List<TextSpan> spans = [];
         spans.add(

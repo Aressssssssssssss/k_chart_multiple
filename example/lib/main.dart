@@ -290,6 +290,20 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.ADX); // 添加选中
           }
         }),
+        button("Secondary Chart:STDDEV", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.STDDEV)) {
+            _secondaryStates.remove(SecondaryState.STDDEV); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.STDDEV); // 添加选中
+          }
+        }),
+        button("Secondary Chart:OSMA", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.OSMA)) {
+            _secondaryStates.remove(SecondaryState.OSMA); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.OSMA); // 添加选中
+          }
+        }),
         button("Secondary Chart:Hide", onPressed: () {
           _secondaryStates.clear();
         }),

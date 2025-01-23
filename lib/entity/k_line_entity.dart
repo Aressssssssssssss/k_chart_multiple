@@ -10,6 +10,7 @@ class KLineEntity extends KEntity {
   double? change;
   double? ratio;
   int? time;
+  double? osma; // Moving Average of Oscillator, i.e. MACD(柱) = dif - dea
 
   KLineEntity.fromCustom({
     this.amount,

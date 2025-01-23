@@ -121,6 +121,9 @@ class ChartColors {
   Color vixColor = Colors.pinkAccent;
 
   Color adxColor = Colors.orangeAccent;
+  Color stdDevColor = Colors.deepPurpleAccent;
+
+  Color osmaColor = Colors.blueGrey;
 }
 
 class ChartStyle {

@@ -28,7 +28,8 @@ enum SecondaryState {
   ADL,
   VIX,
   ADX,
-  SD,
+  STDDEV,
+  OSMA,
   NONE
 }
 

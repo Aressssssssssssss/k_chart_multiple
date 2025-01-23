@@ -1356,9 +1356,99 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算标准差(StdDev) 对 close 做 rolling (period)
+  /// [period] 默认14
+  /// [sample] 是否用Sample标准差(分母=period-1)，否则Population(分母=period)
+  void _computeStdDev(List<KLineEntity> data,
+      {int period = 14, bool sample = true}) {
+    final length = data.length;
+    if (length < 2) return;
+
+    for (int i = 0; i < length; i++) {
+      if (i < period - 1) {
+        // 数据不足period条时，可设为null或0
+        data[i].stdDev = 0;
+      } else {
+        double sumClose = 0;
+        int start = i - period + 1;
+        for (int j = start; j <= i; j++) {
+          sumClose += data[j].close;
+        }
+        double mean = sumClose / period;
+
+        double sumVar = 0;
+        for (int j = start; j <= i; j++) {
+          double diff = data[j].close - mean;
+          sumVar += diff * diff;
+        }
+        num divisor = sample ? (period - 1) : period; // sample or population
+        double variance = sumVar / (divisor == 0 ? 1 : divisor);
+        double stdv = variance >= 0 ? math.sqrt(variance) : 0;
+
+        if (!stdv.isFinite) stdv = 0;
+        data[i].stdDev = stdv;
+      }
+    }
+  }
+
+  /// 计算 OsMA = (DIF - DEA)
+  /// 也可叫 "MACD 柱状图"
+  void _computeOsMA(List<KLineEntity> data,
+      {int shortPeriod = 12, int longPeriod = 26, int signalPeriod = 9}) {
+    final length = data.length;
+    if (length == 0) return;
+
+    // 1) 先算出 EMA(short) & EMA(long)
+    List<double> emaShort = List.filled(length, 0);
+    List<double> emaLong = List.filled(length, 0);
+
+    double alphaShort = 2 / (shortPeriod + 1);
+    double alphaLong = 2 / (longPeriod + 1);
+
+    // 第0条初始化
+    emaShort[0] = data[0].close;
+    emaLong[0] = data[0].close;
+
+    for (int i = 1; i < length; i++) {
+      double c = data[i].close;
+      emaShort[i] = emaShort[i - 1] + alphaShort * (c - emaShort[i - 1]);
+      emaLong[i] = emaLong[i - 1] + alphaLong * (c - emaLong[i - 1]);
+    }
+
+    // 2) DIF = emaShort - emaLong
+    List<double> difArr = List.filled(length, 0);
+    for (int i = 0; i < length; i++) {
+      difArr[i] = emaShort[i] - emaLong[i];
+    }
+
+    // 3) DEA(=Signal line) = EMA(dif, signalPeriod)
+    List<double> deaArr = List.filled(length, 0);
+    double alphaSignal = 2 / (signalPeriod + 1);
+    deaArr[0] = difArr[0]; // 初始化
+    for (int i = 1; i < length; i++) {
+      deaArr[i] = deaArr[i - 1] + alphaSignal * (difArr[i] - deaArr[i - 1]);
+    }
+
+    // 4) OsMA = DIF - DEA
+    for (int i = 0; i < length; i++) {
+      double osmaVal = difArr[i] - deaArr[i];
+      if (!osmaVal.isFinite) osmaVal = 0;
+      data[i].osma = osmaVal;
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    if (secondaryStates.contains(SecondaryState.MACD)) {
+      _computeOsMA(datas!, shortPeriod: 12, longPeriod: 26, signalPeriod: 9);
+    }
+
+    // 如果用户勾选了"STDDEV"
+    if (secondaryStates.contains(SecondaryState.STDDEV)) {
+      _computeStdDev(datas!, period: 14, sample: true);
+    }
 
     // 如果勾选了 ADX 指标
     if (secondaryStates.contains(SecondaryState.ADX)) {
@@ -1460,7 +1550,13 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.ADX) {
+        if (st == SecondaryState.STDDEV) {
+          double? val = item.stdDev;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.ADX) {
           double? adxVal = item.adx;
           if (adxVal != null && adxVal.isFinite) {
             if (adxVal > newMax) newMax = adxVal;
@@ -1616,11 +1712,16 @@ abstract class BaseChartPainter extends CustomPainter {
         } else if (st == SecondaryState.MACD) {
           // item.macd, item.dif, item.dea
           if (item.macd != null && item.dif != null && item.dea != null) {
-            newMax = [oldMax, item.macd!, item.dif!, item.dea!]
+            newMax = [oldMax, item.macd!, item.dif!, item.dea!, item.osma!]
                 .reduce((a, b) => a > b ? a : b);
-            newMin = [oldMin, item.macd!, item.dif!, item.dea!]
+            newMin = [oldMin, item.macd!, item.dif!, item.dea!, item.osma!]
                 .reduce((a, b) => a < b ? a : b);
           }
+          // double? val = item.osma;
+          // if (val != null && val.isFinite) {
+          //   if (val > newMax) newMax = val;
+          //   if (val < newMin) newMin = val;
+          // }
         } else if (st == SecondaryState.KDJ) {
           // item.k, item.d, item.j
           if (item.k != null && item.d != null && item.j != null) {
