@@ -124,6 +124,9 @@ class ChartColors {
   Color stdDevColor = Colors.deepPurpleAccent;
 
   Color osmaColor = Colors.blueGrey;
+
+  Color stochKColor = Colors.green;
+  Color stochDColor = Colors.red;
 }
 
 class ChartStyle {

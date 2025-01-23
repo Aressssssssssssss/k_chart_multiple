@@ -29,7 +29,7 @@ enum SecondaryState {
   VIX,
   ADX,
   STDDEV,
-  OSMA,
+  STOCHASTIC,
   NONE
 }
 

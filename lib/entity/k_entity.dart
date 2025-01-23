@@ -13,6 +13,7 @@ import 'rsi_entity.dart';
 import 'rw_entity.dart';
 import 'sar_entity.dart';
 import 'std_entiry.dart';
+import 'stoch_entity.dart';
 import 'tsi_entity.dart';
 import 'vix_entiry.dart';
 import 'volume_entity.dart';
@@ -46,4 +47,5 @@ class KEntity
         ADLEntiry,
         VIXEntiry,
         ADXEntiry,
-        STDEntiry {}
+        STDEntiry,
+        STOCHEntiry {}

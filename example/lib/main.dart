@@ -157,151 +157,151 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.MACD); // 添加选中
           }
         }),
-        button("Secondary Chart:KDJ", onPressed: () {
+        button("KDJ", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.KDJ)) {
             _secondaryStates.remove(SecondaryState.KDJ); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.KDJ); // 添加选中
           }
         }),
-        button("Secondary Chart:RSI", onPressed: () {
+        button("RSI", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.RSI)) {
             _secondaryStates.remove(SecondaryState.RSI); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.RSI); // 添加选中
           }
         }),
-        button("Secondary Chart:WR", onPressed: () {
+        button("WR", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.WR)) {
             _secondaryStates.remove(SecondaryState.WR); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.WR); // 添加选中
           }
         }),
-        button("Secondary Chart:CCI", onPressed: () {
+        button("CCI", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.CCI)) {
             _secondaryStates.remove(SecondaryState.CCI); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.CCI); // 添加选中
           }
         }),
-        button("Secondary Chart:DMI", onPressed: () {
+        button("DMI", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.DMI)) {
             _secondaryStates.remove(SecondaryState.DMI); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.DMI); // 添加选中
           }
         }),
-        button("Secondary Chart:TRIX", onPressed: () {
+        button("TRIX", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.TRIX)) {
             _secondaryStates.remove(SecondaryState.TRIX); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.TRIX); // 添加选中
           }
         }),
-        button("Secondary Chart:PPO", onPressed: () {
+        button("PPO", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.PPO)) {
             _secondaryStates.remove(SecondaryState.PPO); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.PPO); // 添加选中
           }
         }),
-        button("Secondary Chart:TSI", onPressed: () {
+        button("TSI", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.TSI)) {
             _secondaryStates.remove(SecondaryState.TSI); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.TSI); // 添加选中
           }
         }),
-        button("Secondary Chart:ICHIMOKU", onPressed: () {
+        button("ICHIMOKU", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.ICHIMOKU)) {
             _secondaryStates.remove(SecondaryState.ICHIMOKU); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.ICHIMOKU); // 添加选中
           }
         }),
-        button("Secondary Chart:SAR", onPressed: () {
+        button("SAR", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.SAR)) {
             _secondaryStates.remove(SecondaryState.SAR); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.SAR); // 添加选中
           }
         }),
-        button("Secondary Chart:AROON", onPressed: () {
+        button("AROON", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.AROON)) {
             _secondaryStates.remove(SecondaryState.AROON); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.AROON); // 添加选中
           }
         }),
-        button("Secondary Chart:VORTEX", onPressed: () {
+        button("VORTEX", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.VORTEX)) {
             _secondaryStates.remove(SecondaryState.VORTEX); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.VORTEX); // 添加选中
           }
         }),
-        button("Secondary Chart:ATR", onPressed: () {
+        button("ATR", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.ATR)) {
             _secondaryStates.remove(SecondaryState.ATR); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.ATR); // 添加选中
           }
         }),
-        button("Secondary Chart:HV", onPressed: () {
+        button("HV", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.HV)) {
             _secondaryStates.remove(SecondaryState.HV); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.HV); // 添加选中
           }
         }),
-        button("Secondary Chart:VWAP", onPressed: () {
+        button("VWAP", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.VWAP)) {
             _secondaryStates.remove(SecondaryState.VWAP); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.VWAP); // 添加选中
           }
         }),
-        button("Secondary Chart:OBV", onPressed: () {
+        button("OBV", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.OBV)) {
             _secondaryStates.remove(SecondaryState.OBV); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.OBV); // 添加选中
           }
         }),
-        button("Secondary Chart:ADL", onPressed: () {
+        button("ADL", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.ADL)) {
             _secondaryStates.remove(SecondaryState.ADL); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.ADL); // 添加选中
           }
         }),
-        button("Secondary Chart:VIX", onPressed: () {
+        button("VIX", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.VIX)) {
             _secondaryStates.remove(SecondaryState.VIX); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.VIX); // 添加选中
           }
         }),
-        button("Secondary Chart:ADX", onPressed: () {
+        button("ADX", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.ADX)) {
             _secondaryStates.remove(SecondaryState.ADX); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.ADX); // 添加选中
           }
         }),
-        button("Secondary Chart:STDDEV", onPressed: () {
+        button("STDDEV", onPressed: () {
           if (_secondaryStates.contains(SecondaryState.STDDEV)) {
             _secondaryStates.remove(SecondaryState.STDDEV); // 取消选中
           } else {
             _secondaryStates.add(SecondaryState.STDDEV); // 添加选中
           }
         }),
-        button("Secondary Chart:OSMA", onPressed: () {
-          if (_secondaryStates.contains(SecondaryState.OSMA)) {
-            _secondaryStates.remove(SecondaryState.OSMA); // 取消选中
+        button("STOCHASTIC", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.STOCHASTIC)) {
+            _secondaryStates.remove(SecondaryState.STOCHASTIC); // 取消选中
           } else {
-            _secondaryStates.add(SecondaryState.OSMA); // 添加选中
+            _secondaryStates.add(SecondaryState.STOCHASTIC); // 添加选中
           }
         }),
         button("Secondary Chart:Hide", onPressed: () {

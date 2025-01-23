@@ -100,6 +100,16 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.STOCHASTIC:
+        // 画 %K
+        drawLine(lastPoint.stochK, curPoint.stochK, canvas, lastX, curX,
+            chartColors.stochKColor);
+
+        // 画 %D
+        drawLine(lastPoint.stochD, curPoint.stochD, canvas, lastX, curX,
+            chartColors.stochDColor);
+        break;
+
       case SecondaryState.STDDEV:
         drawLine(lastPoint.stdDev, curPoint.stdDev, canvas, lastX, curX,
             chartColors.stdDevColor);
@@ -292,6 +302,35 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.STOCHASTIC:
+        List<TextSpan> spans = [];
+        spans.add(
+          TextSpan(
+            text: "Stoch(14,3)  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+        );
+        if (data.stochK != null) {
+          spans.add(TextSpan(
+            text: "K:${format(data.stochK)}  ",
+            style: getTextStyle(chartColors.stochKColor),
+          ));
+        }
+        if (data.stochD != null) {
+          spans.add(TextSpan(
+            text: "D:${format(data.stochD)}  ",
+            style: getTextStyle(chartColors.stochDColor),
+          ));
+        }
+
+        TextPainter tp = TextPainter(
+          text: TextSpan(children: spans),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.STDDEV:
         List<TextSpan> spans = [];
         spans.add(TextSpan(
@@ -717,6 +756,11 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
             TextSpan(
                 text: "DEA:${format(data.dea)}    ",
                 style: getTextStyle(this.chartColors.deaColor)),
+          if (data.osma != 0)
+            TextSpan(
+              text: "OsMA:${format(data.osma)}  ",
+              style: getTextStyle(chartColors.osmaColor),
+            )
         ];
         break;
       case SecondaryState.KDJ:

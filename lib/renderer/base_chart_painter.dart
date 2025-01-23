@@ -1437,9 +1437,66 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算 Stochastic Oscillator: %K(14), %D(3) (默认)
+  /// (示例: slow K=14, D=3, 用SMA做%D)
+  void _computeStochastic(List<KLineEntity> data,
+      {int periodK = 14, int periodD = 3}) {
+    final length = data.length;
+    if (length < 2) return;
+
+    // 1) 先算 %K
+    for (int i = 0; i < length; i++) {
+      if (i < periodK - 1) {
+        // 数据不足periodK => stochK设为 null或0
+        data[i].stochK = 0;
+      } else {
+        double highest = -double.infinity;
+        double lowest = double.infinity;
+        int start = i - periodK + 1;
+        for (int j = start; j <= i; j++) {
+          double h = data[j].high;
+          double l = data[j].low;
+          if (h > highest) highest = h;
+          if (l < lowest) lowest = l;
+        }
+        double c = data[i].close;
+        double denominator = (highest - lowest).abs();
+        double kValue = 0;
+        if (denominator < 1e-12) {
+          // 避免分母0 => 收盘价基本跟最高最低相等
+          kValue = 100; // 或者0, 这里设为100
+        } else {
+          kValue = (c - lowest) * 100 / denominator;
+        }
+        if (!kValue.isFinite) kValue = 0;
+        data[i].stochK = kValue;
+      }
+    }
+
+    // 2) 再算 %D = 对 %K 的 [periodD]日SMA
+    for (int i = 0; i < length; i++) {
+      if (i < periodK - 1 + periodD - 1) {
+        // 前面%K还没稳定, D也不足
+        data[i].stochD = 0;
+      } else {
+        double sumK = 0;
+        for (int j = i - (periodD - 1); j <= i; j++) {
+          sumK += data[j].stochK ?? 0;
+        }
+        double dValue = sumK / periodD;
+        if (!dValue.isFinite) dValue = 0;
+        data[i].stochD = dValue;
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+    // 如果用户勾选了STOCHASTIC
+    if (secondaryStates.contains(SecondaryState.STOCHASTIC)) {
+      _computeStochastic(datas!, periodK: 14, periodD: 3);
+    }
 
     if (secondaryStates.contains(SecondaryState.MACD)) {
       _computeOsMA(datas!, shortPeriod: 12, longPeriod: 26, signalPeriod: 9);
@@ -1550,7 +1607,19 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.STDDEV) {
+        if (st == SecondaryState.STOCHASTIC) {
+          // stochK, stochD
+          double? kVal = item.stochK;
+          double? dVal = item.stochD;
+          if (kVal != null && kVal.isFinite) {
+            if (kVal > newMax) newMax = kVal;
+            if (kVal < newMin) newMin = kVal;
+          }
+          if (dVal != null && dVal.isFinite) {
+            if (dVal > newMax) newMax = dVal;
+            if (dVal < newMin) newMin = dVal;
+          }
+        } else if (st == SecondaryState.STDDEV) {
           double? val = item.stdDev;
           if (val != null && val.isFinite) {
             if (val > newMax) newMax = val;
