@@ -32,6 +32,7 @@ enum SecondaryState {
   STOCHASTIC,
   WPR,
   DEMARKER,
+  MOMENTUM,
   NONE
 }
 

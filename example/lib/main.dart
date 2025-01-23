@@ -318,6 +318,13 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.DEMARKER); // 添加选中
           }
         }),
+        button("MOMENTUM", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.MOMENTUM)) {
+            _secondaryStates.remove(SecondaryState.MOMENTUM); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.MOMENTUM); // 添加选中
+          }
+        }),
         button("Secondary Chart:Hide", onPressed: () {
           _secondaryStates.clear();
         }),

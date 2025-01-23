@@ -1587,9 +1587,34 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算 Momentum 指标: Momentum(i) = Close(i) - Close(i - period)
+  /// (也可改成比率( *100 ), 同理)
+  void _computeMomentum(List<KLineEntity> data, {int period = 10}) {
+    final length = data.length;
+    if (length == 0) return;
+
+    for (int i = 0; i < length; i++) {
+      if (i < period) {
+        // 数据不足period => 先赋值0或null
+        data[i].momentum = 0;
+      } else {
+        double currentClose = data[i].close;
+        double pastClose = data[i - period].close;
+        double momValue = currentClose - pastClose; // 差值
+        if (!momValue.isFinite) momValue = 0;
+        data[i].momentum = momValue;
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+    // 如果用户勾选了Momentum
+    if (secondaryStates.contains(SecondaryState.MOMENTUM)) {
+      _computeMomentum(datas!, period: 10);
+    }
+
     // 如果用户勾选了 DeMarker 指标
     if (secondaryStates.contains(SecondaryState.DEMARKER)) {
       _computeDeMarker(datas!, period: 14);
@@ -1714,7 +1739,13 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.DEMARKER) {
+        if (st == SecondaryState.MOMENTUM) {
+          double? val = item.momentum;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.DEMARKER) {
           double? demVal = item.dem;
           if (demVal != null && demVal.isFinite) {
             if (demVal > newMax) newMax = demVal;

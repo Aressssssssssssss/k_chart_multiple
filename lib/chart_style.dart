@@ -131,6 +131,8 @@ class ChartColors {
   Color wprColor = Colors.indigo;
 
   Color demColor = Colors.cyan; // DeMarker线
+
+  Color momentumColor = Colors.indigo;
 }
 
 class ChartStyle {
