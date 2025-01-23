@@ -34,6 +34,8 @@ enum SecondaryState {
   DEMARKER,
   MOMENTUM,
   MFI,
+  ENVELOPES,
+  VOLATILITY,
   NONE
 }
 

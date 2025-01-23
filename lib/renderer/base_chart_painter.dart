@@ -1673,9 +1673,111 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算 Envelopes
+  /// [period] 默认20, [shiftPercent] 默认0.02 (2%)
+  void _computeEnvelopes(List<KLineEntity> data,
+      {int period = 20, double shiftPercent = 0.02}) {
+    final length = data.length;
+    if (length < 1) return;
+
+    for (int i = 0; i < length; i++) {
+      if (i < period - 1) {
+        data[i].envMid = null;
+        data[i].envUp = null;
+        data[i].envDn = null;
+      } else {
+        // 1) 计算过去period条close的SMA
+        double sumClose = 0;
+        int start = i - period + 1;
+        for (int j = start; j <= i; j++) {
+          sumClose += data[j].close;
+        }
+        double mid = sumClose / period;
+
+        // 2) 上下轨
+        double up = mid * (1 + shiftPercent);
+        double dn = mid * (1 - shiftPercent);
+
+        data[i].envMid = mid;
+        data[i].envUp = up;
+        data[i].envDn = dn;
+      }
+    }
+  }
+
+  /// 计算简单的Volatility Indicator = 100 * ATR(period)/Close
+  /// [period] 默认14
+  void _computeVolIndicator(List<KLineEntity> data, {int period = 14}) {
+    final length = data.length;
+    if (length < 2) return;
+
+    // 1) 先用最直观方法计算ATR(period)
+    //    需要TR(i)= max( (high-low), |high-prevClose|, |low-prevClose| )
+    List<double> trArr = List.filled(length, 0);
+
+    // 第0条无法与前一条比 => 先用 (high0 - low0)
+    trArr[0] = data[0].high - data[0].low;
+    for (int i = 1; i < length; i++) {
+      double high = data[i].high;
+      double low = data[i].low;
+      double prevClose = data[i - 1].close;
+
+      double range1 = (high - low).abs();
+      double range2 = (high - prevClose).abs();
+      double range3 = (low - prevClose).abs();
+      trArr[i] = [range1, range2, range3].reduce((a, b) => a > b ? a : b);
+    }
+
+    // 2) 计算Wilder平滑或SMA => ATR
+    List<double> atrArr = List.filled(length, 0);
+    double sumTR = 0;
+    // 前period条先做简单平均(演示)
+    for (int i = 0; i < period && i < length; i++) {
+      sumTR += trArr[i];
+    }
+    if (period <= length) {
+      atrArr[period - 1] = sumTR / period;
+    }
+
+    // 用Wilder平滑： ATR(i)= [ATR(i-1)*(period-1)+TR(i)]/period
+    for (int i = period; i < length; i++) {
+      double prevAtr = atrArr[i - 1];
+      double curAtr = ((prevAtr * (period - 1)) + trArr[i]) / period;
+      atrArr[i] = curAtr;
+    }
+
+    // 3) volIndicator(i)= (ATR(i)/close(i))*100
+    // 对 i < period-1，可视为无有效ATR => volIndicator=0
+    for (int i = 0; i < length; i++) {
+      if (i < period - 1) {
+        data[i].volIndicator = 0;
+      } else {
+        double close = data[i].close;
+        double atr = atrArr[i];
+        if (close.abs() < 1e-12) {
+          data[i].volIndicator = 0;
+        } else {
+          double volInd = (atr / close) * 100;
+          if (!volInd.isFinite) volInd = 0;
+          data[i].volIndicator = volInd;
+        }
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    // 如果用户勾选了 Volatility Indicator
+    if (secondaryStates.contains(SecondaryState.VOLATILITY)) {
+      _computeVolIndicator(datas!, period: 14);
+    }
+
+    // 如果用户勾选Envelopes
+    if (secondaryStates.contains(SecondaryState.ENVELOPES)) {
+      _computeEnvelopes(datas!, period: 20, shiftPercent: 0.02);
+    }
 
     // 如果用户勾选 MFI
     if (secondaryStates.contains(SecondaryState.MFI)) {
@@ -1810,7 +1912,27 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.MFI) {
+        if (st == SecondaryState.VOLATILITY) {
+          double? val = item.volIndicator;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.ENVELOPES) {
+          // 3条线: envMid, envUp, envDn
+          if (item.envMid != null && item.envMid!.isFinite) {
+            if (item.envMid! > newMax) newMax = item.envMid!;
+            if (item.envMid! < newMin) newMin = item.envMid!;
+          }
+          if (item.envUp != null && item.envUp!.isFinite) {
+            if (item.envUp! > newMax) newMax = item.envUp!;
+            if (item.envUp! < newMin) newMin = item.envUp!;
+          }
+          if (item.envDn != null && item.envDn!.isFinite) {
+            if (item.envDn! > newMax) newMax = item.envDn!;
+            if (item.envDn! < newMin) newMin = item.envDn!;
+          }
+        } else if (st == SecondaryState.MFI) {
           double? mfiVal = item.mfi;
           if (mfiVal != null && mfiVal.isFinite) {
             if (mfiVal > newMax) newMax = mfiVal;

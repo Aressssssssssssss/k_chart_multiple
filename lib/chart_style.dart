@@ -134,6 +134,12 @@ class ChartColors {
 
   Color momentumColor = Colors.indigo;
   Color mfiColor = Colors.deepOrangeAccent;
+
+  Color envMidColor = Colors.blue; // 中轨
+  Color envUpColor = Colors.green; // 上轨
+  Color envDnColor = Colors.red; // 下轨
+
+  Color volIndicatorColor = Colors.blueGrey;
 }
 
 class ChartStyle {

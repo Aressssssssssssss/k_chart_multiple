@@ -332,6 +332,20 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.MFI); // 添加选中
           }
         }),
+        button("ENVELOPES", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.ENVELOPES)) {
+            _secondaryStates.remove(SecondaryState.ENVELOPES); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.ENVELOPES); // 添加选中
+          }
+        }),
+        button("VOLATILITY", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.VOLATILITY)) {
+            _secondaryStates.remove(SecondaryState.VOLATILITY); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.VOLATILITY); // 添加选中
+          }
+        }),
         button("Secondary Chart:Hide", onPressed: () {
           _secondaryStates.clear();
         }),

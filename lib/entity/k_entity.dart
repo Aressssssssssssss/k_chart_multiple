@@ -4,6 +4,7 @@ import 'aroon_entity.dart';
 import 'atr_entity.dart';
 import 'candle_entity.dart';
 import 'dem_entiry.dart';
+import 'env_entity.dart';
 import 'hv_entity.dart';
 import 'ichimoku_entity.dart';
 import 'kdj_entity.dart';
@@ -19,6 +20,7 @@ import 'std_entiry.dart';
 import 'stoch_entity.dart';
 import 'tsi_entity.dart';
 import 'vix_entiry.dart';
+import 'voli_entity.dart';
 import 'volume_entity.dart';
 import 'cci_entity.dart';
 import 'dmi_entity.dart';
@@ -56,4 +58,6 @@ class KEntity
         WPREntiry,
         DEMEntiry,
         MOMENTUMEntity,
-        MFIEntity {}
+        MFIEntity,
+        ENVEntity,
+        VOLIEntity {}

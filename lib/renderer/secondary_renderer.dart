@@ -100,6 +100,23 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.VOLATILITY:
+        drawLine(lastPoint.volIndicator, curPoint.volIndicator, canvas, lastX,
+            curX, chartColors.volIndicatorColor);
+        break;
+
+      case SecondaryState.ENVELOPES:
+        // 中轨
+        drawLine(lastPoint.envMid, curPoint.envMid, canvas, lastX, curX,
+            chartColors.envMidColor);
+        // 上轨
+        drawLine(lastPoint.envUp, curPoint.envUp, canvas, lastX, curX,
+            chartColors.envUpColor);
+        // 下轨
+        drawLine(lastPoint.envDn, curPoint.envDn, canvas, lastX, curX,
+            chartColors.envDnColor);
+        break;
+
       case SecondaryState.MFI:
         drawLine(lastPoint.mfi, curPoint.mfi, canvas, lastX, curX,
             chartColors.mfiColor);
@@ -323,6 +340,54 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.VOLATILITY:
+        List<TextSpan> spans = [];
+        spans.add(TextSpan(
+          text: "Volatility(ATR/Close)  ",
+          style: getTextStyle(chartColors.defaultTextColor),
+        ));
+        if (data.volIndicator != null) {
+          spans.add(TextSpan(
+            text: "Vol:${format(data.volIndicator)}  ",
+            style: getTextStyle(chartColors.volIndicatorColor),
+          ));
+        }
+        TextPainter tp = TextPainter(
+            text: TextSpan(children: spans), textDirection: TextDirection.ltr);
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
+      case SecondaryState.ENVELOPES:
+        List<TextSpan> spans = [];
+        spans.add(TextSpan(
+          text: "Envelopes(20,2%)  ",
+          style: getTextStyle(chartColors.defaultTextColor),
+        ));
+        if (data.envMid != null) {
+          spans.add(TextSpan(
+            text: "MID:${format(data.envMid)}  ",
+            style: getTextStyle(chartColors.envMidColor),
+          ));
+        }
+        if (data.envUp != null) {
+          spans.add(TextSpan(
+            text: "UP:${format(data.envUp)}  ",
+            style: getTextStyle(chartColors.envUpColor),
+          ));
+        }
+        if (data.envDn != null) {
+          spans.add(TextSpan(
+            text: "DN:${format(data.envDn)}  ",
+            style: getTextStyle(chartColors.envDnColor),
+          ));
+        }
+        TextPainter tp = TextPainter(
+            text: TextSpan(children: spans), textDirection: TextDirection.ltr);
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.MFI:
         List<TextSpan> spans = [];
         spans.add(
