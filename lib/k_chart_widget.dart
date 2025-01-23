@@ -20,6 +20,7 @@ enum SecondaryState {
   ICHIMOKU,
   SAR,
   AROON,
+  VORTEX,
   NONE
 }
 

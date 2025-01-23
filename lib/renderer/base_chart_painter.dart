@@ -910,9 +910,90 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 计算 Vortex 指标 (+VI, -VI)
+  /// [period] 通常默认为 14
+  void _computeVortex(List<KLineEntity> data, {int period = 14}) {
+    final length = data.length;
+    if (length < 2) {
+      // 数据太少, 全部置0或null
+      for (int i = 0; i < length; i++) {
+        data[i].viPlus = 0;
+        data[i].viMinus = 0;
+      }
+      return;
+    }
+
+    // 1) 先构建数组存 +VM, -VM, TR
+    List<double> plusVM = List.filled(length, 0);
+    List<double> minusVM = List.filled(length, 0);
+    List<double> trArr = List.filled(length, 0);
+
+    // 第0条K线没法计算VM / TR
+    plusVM[0] = 0;
+    minusVM[0] = 0;
+    trArr[0] = 0;
+
+    for (int i = 1; i < length; i++) {
+      double high = data[i].high;
+      double low = data[i].low;
+      double prevHigh = data[i - 1].high;
+      double prevLow = data[i - 1].low;
+      double prevClose = data[i - 1].close;
+
+      // +VM_i = |High_i - Low_{i-1}|
+      plusVM[i] = (high - prevLow).abs();
+      // -VM_i = |Low_i - High_{i-1}|
+      minusVM[i] = (low - prevHigh).abs();
+
+      // TR_i = max( High_i - Low_i, |High_i - Close_{i-1}|, |Low_i - Close_{i-1}| )
+      double a = high - low;
+      double b = (high - prevClose).abs();
+      double c = (low - prevClose).abs();
+      trArr[i] = [a, b, c].reduce((x, y) => x > y ? x : y);
+    }
+
+    // 2) 计算 +VI / -VI
+    for (int i = 0; i < length; i++) {
+      if (i < period) {
+        // 前 period-1 条数据不足
+        data[i].viPlus = 0;
+        data[i].viMinus = 0;
+      } else {
+        // sum +VM, -VM, TR from i-period+1..i
+        double sumPlus = 0, sumMinus = 0, sumTR = 0;
+        int start = i - period + 1;
+        for (int j = start; j <= i; j++) {
+          sumPlus += plusVM[j];
+          sumMinus += minusVM[j];
+          sumTR += trArr[j];
+        }
+        double viP = 0, viM = 0;
+        if (sumTR.abs() < 1e-12) {
+          // 避免分母0
+          viP = 0;
+          viM = 0;
+        } else {
+          viP = sumPlus / sumTR;
+          viM = sumMinus / sumTR;
+        }
+        // 防止溢出
+        if (!viP.isFinite) viP = 0;
+        if (!viM.isFinite) viM = 0;
+
+        data[i].viPlus = viP;
+        data[i].viMinus = viM;
+      }
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    // 当用户在副图里选了 VORTEX
+    if (secondaryStates.contains(SecondaryState.VORTEX)) {
+      _computeVortex(datas!, period: 14);
+    }
 
     // 如果勾选了 AROON
     if (secondaryStates.contains(SecondaryState.AROON)) {
@@ -974,7 +1055,19 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.AROON) {
+        if (st == SecondaryState.VORTEX) {
+          // item.viPlus, item.viMinus
+          double? viplus = item.viPlus;
+          double? viminus = item.viMinus;
+          if (viplus != null && viplus.isFinite) {
+            if (viplus > newMax) newMax = viplus;
+            if (viplus < newMin) newMin = viplus;
+          }
+          if (viminus != null && viminus.isFinite) {
+            if (viminus > newMax) newMax = viminus;
+            if (viminus < newMin) newMin = viminus;
+          }
+        } else if (st == SecondaryState.AROON) {
           // item.aroonUp, item.aroonDown, item.aroonOsc
           double? up = item.aroonUp;
           double? down = item.aroonDown;

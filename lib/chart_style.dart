@@ -101,6 +101,9 @@ class ChartColors {
   Color aroonUpColor = Colors.green;
   Color aroonDownColor = Colors.red;
   Color aroonOscColor = Colors.blue;
+
+  Color vortexPlusColor = Colors.orange;
+  Color vortexMinusColor = Colors.cyan;
 }
 
 class ChartStyle {

@@ -12,6 +12,7 @@ import 'volume_entity.dart';
 import 'cci_entity.dart';
 import 'dmi_entity.dart';
 import 'trix_entity.dart';
+import 'vortex_entity.dart';
 
 class KEntity
     with
@@ -28,4 +29,5 @@ class KEntity
         TSIXEntity,
         ICHIMOKUEntity,
         SAREntity,
-        AROONEntity {}
+        AROONEntity,
+        VORTEXEntity {}

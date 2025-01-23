@@ -100,6 +100,13 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.VORTEX:
+        drawLine(lastPoint.viPlus, curPoint.viPlus, canvas, lastX, curX,
+            chartColors.vortexPlusColor);
+        drawLine(lastPoint.viMinus, curPoint.viMinus, canvas, lastX, curX,
+            chartColors.vortexMinusColor);
+        break;
+
       case SecondaryState.AROON:
         // 画3条线
         drawLine(lastPoint.aroonUp, curPoint.aroonUp, canvas, lastX, curX,
@@ -236,6 +243,35 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.VORTEX:
+        List<TextSpan> children = [];
+        children.add(
+          TextSpan(
+            text: "Vortex(14)  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+        );
+        if (data.viPlus != null) {
+          children.add(TextSpan(
+            text: "+VI:${format(data.viPlus)}  ",
+            style: getTextStyle(chartColors.vortexPlusColor),
+          ));
+        }
+        if (data.viMinus != null) {
+          children.add(TextSpan(
+            text: "-VI:${format(data.viMinus)}  ",
+            style: getTextStyle(chartColors.vortexMinusColor),
+          ));
+        }
+
+        TextPainter tp = TextPainter(
+          text: TextSpan(children: children),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.AROON:
         List<TextSpan> spans = [];
         spans.add(

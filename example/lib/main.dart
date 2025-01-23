@@ -234,6 +234,13 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.AROON); // 添加选中
           }
         }),
+        button("Secondary Chart:VORTEX", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.VORTEX)) {
+            _secondaryStates.remove(SecondaryState.VORTEX); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.VORTEX); // 添加选中
+          }
+        }),
         button("Secondary Chart:Hide", onPressed: () {
           _secondaryStates.clear();
         }),
