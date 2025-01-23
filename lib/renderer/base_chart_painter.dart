@@ -1286,9 +1286,84 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+  /// 仅计算 ADX (不再输出 +DI, -DI 字段)，以便单独用作副图
+  /// [period] 常见默认14
+  void _computeADX(List<KLineEntity> data, {int period = 14}) {
+    final length = data.length;
+    if (length < 2) return;
+
+    // 1) 准备存 DM/TR
+    List<double> plusDM = List.filled(length, 0);
+    List<double> minusDM = List.filled(length, 0);
+    List<double> trArr = List.filled(length, 0);
+
+    // 2) 计算每根K线的 +DM, -DM, TR
+    // 第0条无法算DM/TR，先给0
+    for (int i = 1; i < length; i++) {
+      double high = data[i].high;
+      double low = data[i].low;
+      double prevHigh = data[i - 1].high;
+      double prevLow = data[i - 1].low;
+      double upMove = high - prevHigh;
+      double downMove = prevLow - low;
+      plusDM[i] = (upMove > downMove && upMove > 0) ? upMove : 0;
+      minusDM[i] = (downMove > upMove && downMove > 0) ? downMove : 0;
+
+      double range1 = (high - low).abs();
+      double range2 = (high - data[i - 1].close).abs();
+      double range3 = (low - data[i - 1].close).abs();
+      trArr[i] = [range1, range2, range3].reduce((a, b) => a > b ? a : b);
+    }
+
+    // 3) Wilder 平滑(累加) => DM14 / TR14
+    double plusDM14 = 0;
+    double minusDM14 = 0;
+    double tr14 = 0;
+
+    // 前面 period-1 条先做初始化
+    for (int i = 1; i <= period; i++) {
+      plusDM14 += plusDM[i];
+      minusDM14 += minusDM[i];
+      tr14 += trArr[i];
+    }
+    double plusDI = (tr14 == 0) ? 0 : (100 * plusDM14 / tr14);
+    double minusDI = (tr14 == 0) ? 0 : (100 * minusDM14 / tr14);
+
+    // 计算第 period 根 dx & adx
+    double dx = ((plusDI - minusDI).abs() /
+            (plusDI + minusDI == 0 ? 1 : (plusDI + minusDI))) *
+        100;
+    data[period].adx = dx; // 第 period 条上才第一次有 ADX
+
+    double adxPrev = dx; // 用于后续平滑
+    for (int i = period + 1; i < length; i++) {
+      // 逐根用 Wilder 方式更新 DM14, TR14
+      plusDM14 = plusDM14 - (plusDM14 / period) + plusDM[i];
+      minusDM14 = minusDM14 - (minusDM14 / period) + minusDM[i];
+      tr14 = tr14 - (tr14 / period) + trArr[i];
+
+      plusDI = (tr14 == 0) ? 0 : (100 * plusDM14 / tr14);
+      minusDI = (tr14 == 0) ? 0 : (100 * minusDM14 / tr14);
+
+      dx = ((plusDI - minusDI).abs() /
+              (plusDI + minusDI == 0 ? 1 : (plusDI + minusDI))) *
+          100;
+
+      double adx = ((adxPrev * (period - 1)) + dx) / period;
+      if (!adx.isFinite) adx = adxPrev;
+      data[i].adx = adx;
+      adxPrev = adx;
+    }
+  }
+
   calculateValue() {
     if (datas == null) return;
     if (datas!.isEmpty) return;
+
+    // 如果勾选了 ADX 指标
+    if (secondaryStates.contains(SecondaryState.ADX)) {
+      _computeADX(datas!, period: 14);
+    }
 
     // 如果用户勾选 VIX
     if (secondaryStates.contains(SecondaryState.VIX)) {
@@ -1385,7 +1460,13 @@ abstract class BaseChartPainter extends CustomPainter {
         double oldMin = mSecondaryMinMap[st] ?? double.maxFinite;
         double newMax = oldMax;
         double newMin = oldMin;
-        if (st == SecondaryState.VIX) {
+        if (st == SecondaryState.ADX) {
+          double? adxVal = item.adx;
+          if (adxVal != null && adxVal.isFinite) {
+            if (adxVal > newMax) newMax = adxVal;
+            if (adxVal < newMin) newMin = adxVal;
+          }
+        } else if (st == SecondaryState.VIX) {
           double? v = item.vix;
           if (v != null && v.isFinite) {
             if (v > newMax) newMax = v;

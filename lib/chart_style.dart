@@ -119,6 +119,8 @@ class ChartColors {
   Color marketProfileColor = Colors.cyan; // 你喜欢的颜色
 
   Color vixColor = Colors.pinkAccent;
+
+  Color adxColor = Colors.orangeAccent;
 }
 
 class ChartStyle {

@@ -100,6 +100,11 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     switch (state) {
+      case SecondaryState.ADX:
+        drawLine(lastPoint.adx, curPoint.adx, canvas, lastX, curX,
+            chartColors.adxColor);
+        break;
+
       case SecondaryState.VIX:
         drawLine(lastPoint.vix, curPoint.vix, canvas, lastX, curX,
             chartColors.vixColor);
@@ -278,6 +283,30 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
   void drawText(Canvas canvas, KLineEntity data, double x) {
     List<TextSpan>? children;
     switch (state) {
+      case SecondaryState.ADX:
+        List<TextSpan> spans = [];
+        spans.add(
+          TextSpan(
+            text: "ADX(14)  ",
+            style: getTextStyle(chartColors.defaultTextColor),
+          ),
+        );
+        if (data.adx != null) {
+          spans.add(
+            TextSpan(
+              text: "ADX:${format(data.adx)}  ",
+              style: getTextStyle(chartColors.adxColor),
+            ),
+          );
+        }
+        TextPainter tp = TextPainter(
+          text: TextSpan(children: spans),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
       case SecondaryState.VIX:
         List<TextSpan> spans = [];
         spans.add(TextSpan(

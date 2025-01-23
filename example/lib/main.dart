@@ -283,6 +283,13 @@ class _MyHomePageState extends State<MyHomePage> {
             _secondaryStates.add(SecondaryState.VIX); // 添加选中
           }
         }),
+        button("Secondary Chart:ADX", onPressed: () {
+          if (_secondaryStates.contains(SecondaryState.ADX)) {
+            _secondaryStates.remove(SecondaryState.ADX); // 取消选中
+          } else {
+            _secondaryStates.add(SecondaryState.ADX); // 添加选中
+          }
+        }),
         button("Secondary Chart:Hide", onPressed: () {
           _secondaryStates.clear();
         }),
