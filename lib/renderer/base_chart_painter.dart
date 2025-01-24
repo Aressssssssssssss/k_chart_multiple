@@ -682,20 +682,22 @@ abstract class BaseChartPainter extends CustomPainter {
   /// [kijunPeriod]   默认26
   /// [senkouBPeriod] 默认52
   /// [shift]         通常26，用于云图前移/后移，但在此仅计算值，不做实际数组越界写入
+  /// [smoothMethod]  平滑方法: 'wilder', 'ema', 'double', 'none'
   void _computeIchimoku(
     List<KLineEntity> data, {
     int tenkanPeriod = 9,
     int kijunPeriod = 26,
     int senkouBPeriod = 52,
     int shift = 26,
+    String smoothMethod = 'ema',
   }) {
     final length = data.length;
     if (length == 0) return;
 
-    // 函数: 取得[i-period+1 .. i]区间的最高价、最低价
+    // Helper functions for highest and lowest prices
     double highestHigh(List<KLineEntity> list, int endIndex, int period) {
       double hh = -double.infinity;
-      int start = endIndex - period + 1; // 包含endIndex
+      int start = endIndex - period + 1;
       if (start < 0) start = 0;
       for (int idx = start; idx <= endIndex; idx++) {
         if (list[idx].high > hh) hh = list[idx].high;
@@ -713,46 +715,74 @@ abstract class BaseChartPainter extends CustomPainter {
       return ll;
     }
 
+    // Helper function for smoothing
+    double smooth(
+        List<double> values, int period, String method, double lastValue) {
+      if (values.isEmpty) return lastValue;
+      double newValue = values.last;
+      switch (method) {
+        case 'wilder':
+          return (lastValue * (period - 1) + newValue) / period;
+        case 'ema':
+          double alpha = 2 / (period + 1);
+          return alpha * newValue + (1 - alpha) * lastValue;
+        case 'double':
+          double wilderValue = (lastValue * (period - 1) + newValue) / period;
+          double alpha = 2 / (period + 1);
+          return alpha * wilderValue + (1 - alpha) * lastValue;
+        case 'none':
+        default:
+          return newValue;
+      }
+    }
+
     for (int i = 0; i < length; i++) {
-      // 1) 计算Tenkan(转换线)= (9日最高+9日最低)/2
+      // 1) Compute Tenkan-sen (Conversion Line)
       if (i >= tenkanPeriod - 1) {
         double hh = highestHigh(data, i, tenkanPeriod);
         double ll = lowestLow(data, i, tenkanPeriod);
-        data[i].ichimokuTenkan = (hh + ll) / 2.0;
+        double tenkan = (hh + ll) / 2.0;
+        data[i].ichimokuTenkan = smooth([tenkan], tenkanPeriod, smoothMethod,
+            i > 0 ? data[i - 1].ichimokuTenkan ?? 0 : 0);
       } else {
-        data[i].ichimokuTenkan = null; // 数据不够，无法计算
+        data[i].ichimokuTenkan = null;
       }
 
-      // 2) 计算Kijun(基准线)= (26日最高+26日最低)/2
+      // 2) Compute Kijun-sen (Base Line)
       if (i >= kijunPeriod - 1) {
         double hh = highestHigh(data, i, kijunPeriod);
         double ll = lowestLow(data, i, kijunPeriod);
-        data[i].ichimokuKijun = (hh + ll) / 2.0;
+        double kijun = (hh + ll) / 2.0;
+        data[i].ichimokuKijun = smooth([kijun], kijunPeriod, smoothMethod,
+            i > 0 ? data[i - 1].ichimokuKijun ?? 0 : 0);
       } else {
         data[i].ichimokuKijun = null;
       }
 
-      // 3) 先行Span A = (Tenkan + Kijun)/2 (一般要前移26)
-      //   这里为了避免下标越界，不对 i+shift 写入
-      //   只是在当前 i 存 "Span A" 的数值
+      // 3) Compute Senkou Span A (Leading Span A)
       if (data[i].ichimokuTenkan != null && data[i].ichimokuKijun != null) {
-        data[i].ichimokuSpanA =
-            (data[i].ichimokuTenkan! + data[i].ichimokuKijun!) / 2.0;
+        double spanA = (data[i].ichimokuTenkan! + data[i].ichimokuKijun!) / 2.0;
+        data[i].ichimokuSpanA = smooth(
+            [spanA],
+            (tenkanPeriod + kijunPeriod) ~/ 2,
+            smoothMethod,
+            i > 0 ? data[i - 1].ichimokuSpanA ?? 0 : 0);
       } else {
         data[i].ichimokuSpanA = null;
       }
 
-      // 4) 先行Span B= (52日最高+52日最低)/2 (一般要前移26)
+      // 4) Compute Senkou Span B (Leading Span B)
       if (i >= senkouBPeriod - 1) {
         double hh = highestHigh(data, i, senkouBPeriod);
         double ll = lowestLow(data, i, senkouBPeriod);
-        data[i].ichimokuSpanB = (hh + ll) / 2.0;
+        double spanB = (hh + ll) / 2.0;
+        data[i].ichimokuSpanB = smooth([spanB], senkouBPeriod, smoothMethod,
+            i > 0 ? data[i - 1].ichimokuSpanB ?? 0 : 0);
       } else {
         data[i].ichimokuSpanB = null;
       }
 
-      // 5) 遁行线(Chikou)= 收盘价 (一般要后移26)
-      //   简化写法：存到当前 i
+      // 5) Chikou Span (Lagging Span) - no smoothing needed as it's just the closing price
       data[i].ichimokuChikou = data[i].close;
     }
   }
@@ -849,70 +879,10 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
-  /// 计算 Aroon 指标
-  /// [period] 常见默认14
-  ///  - AroonUp = ((period - (i - idxOfRecentHigh)) / period)*100
-  ///  - AroonDown = ((period - (i - idxOfRecentLow)) / period)*100
-  ///  - AroonOsc = AroonUp - AroonDown (可选)
-  void _computeAroon(List<KLineEntity> data,
-      {int period = 14, bool calcOsc = true}) {
-    final length = data.length;
-    if (length < period) {
-      // 少于period，计算不出来或只给默认值
-      for (int i = 0; i < length; i++) {
-        data[i].aroonUp = 0;
-        data[i].aroonDown = 0;
-        if (calcOsc) data[i].aroonOsc = 0;
-      }
-      return;
-    }
-
-    for (int i = 0; i < length; i++) {
-      // 计算区间 [i - period + 1 .. i]，需判越界
-      int start = i - period + 1;
-      if (start < 0) start = 0; // 不够周期就从0开始
-      double highest = -double.infinity;
-      double lowest = double.infinity;
-      int idxHigh = i;
-      int idxLow = i;
-
-      // 在过去 period 根(或到0)里找最高价/最低价以及它们所在索引
-      for (int j = start; j <= i; j++) {
-        double h = data[j].high;
-        double l = data[j].low;
-        if (h > highest) {
-          highest = h;
-          idxHigh = j;
-        }
-        if (l < lowest) {
-          lowest = l;
-          idxLow = j;
-        }
-      }
-
-      // 计算 Up / Down
-      double up = 100.0 * (period - (i - idxHigh)) / period;
-      double down = 100.0 * (period - (i - idxLow)) / period;
-
-      // 防止溢出
-      if (!up.isFinite) up = 0;
-      if (!down.isFinite) down = 0;
-
-      data[i].aroonUp = up.clamp(0, 100); // 一般区间[0,100]
-      data[i].aroonDown = down.clamp(0, 100);
-
-      // 如果要 AroonOsc
-      if (calcOsc) {
-        double osc = up - down;
-        if (!osc.isFinite) osc = 0;
-        data[i].aroonOsc = osc;
-      }
-    }
-  }
-
   /// 计算 Vortex 指标 (+VI, -VI)
   /// [period] 通常默认为 14
-  void _computeVortex(List<KLineEntity> data, {int period = 14}) {
+  void _computeVortex(List<KLineEntity> data,
+      {int period = 14, String smoothMethod = 'wilder'}) {
     final length = data.length;
     if (length < 2) {
       // 数据太少, 全部置0或null
@@ -952,9 +922,9 @@ abstract class BaseChartPainter extends CustomPainter {
       trArr[i] = [a, b, c].reduce((x, y) => x > y ? x : y);
     }
 
-    // 2) 计算 +VI / -VI
+    // 2) 计算 +VI / -VI with smoothing
     for (int i = 0; i < length; i++) {
-      if (i < period) {
+      if (i < period - 1) {
         // 前 period-1 条数据不足
         data[i].viPlus = 0;
         data[i].viMinus = 0;
@@ -976,6 +946,18 @@ abstract class BaseChartPainter extends CustomPainter {
           viP = sumPlus / sumTR;
           viM = sumMinus / sumTR;
         }
+
+        // 应用平滑处理
+        if (i > period - 1) {
+          switch (smoothMethod) {
+            case 'wilder':
+              viP = (data[i - 1].viPlus! * (period - 1) + viP) / period;
+              viM = (data[i - 1].viMinus! * (period - 1) + viM) / period;
+              break;
+            // Here you could add other smoothing methods like 'ema' or 'double' if needed
+          }
+        }
+
         // 防止溢出
         if (!viP.isFinite) viP = 0;
         if (!viM.isFinite) viM = 0;
@@ -988,7 +970,9 @@ abstract class BaseChartPainter extends CustomPainter {
 
   /// 计算 ATR (Average True Range) 指标
   /// [period] 默认14 (Wilder平滑)
-  void _computeATR(List<KLineEntity> data, {int period = 14}) {
+  /// [smoothMethod] 平滑方法: 'wilder', 'ema', 'double', 'none'
+  void _computeATR(List<KLineEntity> data,
+      {int period = 14, String smoothMethod = 'ema'}) {
     final length = data.length;
     if (length == 0) return;
 
@@ -1012,23 +996,40 @@ abstract class BaseChartPainter extends CustomPainter {
       trArr[i] = tr;
     }
 
-    // 2) 计算ATR
-    // 第0条 ATR = TR(0)
-    data[0].atr = trArr[0];
+    // 2) 计算ATR with different smoothing methods
+    data[0].atr = trArr[0]; // No smoothing for the first data point
 
-    // 如果 length < period，就全部给简单平均 or 直接给TR
-    // 这里演示: 若 i < period，则用简单平均
     double sumTR = trArr[0];
     for (int i = 1; i < length; i++) {
       sumTR += trArr[i];
       if (i < period) {
-        // i=1~13 => 直接简单平均
+        // i=1~13 => 直接简单平均, applicable for all smoothMethods
         data[i].atr = sumTR / (i + 1);
       } else {
-        // i >= period => 用Wilder平滑
         double prevAtr = data[i - 1].atr ?? 0;
-        // ATR(i)=((prevAtr*(period-1)) + TR(i)) / period
-        double curAtr = (prevAtr * (period - 1) + trArr[i]) / period;
+        double curAtr = 0;
+        switch (smoothMethod) {
+          case 'wilder':
+            // Wilder Smoothing: ATR(i)=((prevAtr*(period-1)) + TR(i)) / period
+            curAtr = (prevAtr * (period - 1) + trArr[i]) / period;
+            break;
+          case 'ema':
+            // EMA Smoothing
+            double alpha = 2 / (period + 1);
+            curAtr = alpha * trArr[i] + (1 - alpha) * prevAtr;
+            break;
+          case 'double':
+            // Double Smoothing: Wilder then EMA
+            double wilderAtr = (prevAtr * (period - 1) + trArr[i]) / period;
+            double alpha = 2 / (period + 1);
+            curAtr = alpha * wilderAtr + (1 - alpha) * prevAtr;
+            break;
+          case 'none':
+            // No smoothing, just use TR directly
+            curAtr = trArr[i];
+            break;
+        }
+
         // 防止NaN / Infinity
         if (!curAtr.isFinite) {
           curAtr = prevAtr;
@@ -1041,11 +1042,13 @@ abstract class BaseChartPainter extends CustomPainter {
   /// 计算 Historical Volatility (HV)
   /// [period] 窗口期, 默认14
   /// [annualFactor] 年化系数, 常见252(交易日), 或365(自然日)
+  /// [smoothMethod] 平滑方法: 'wilder', 'ema', 'double'
   /// 例如: HV= stdev( ln(close_i/close_{i-1}) ) over `period` * sqrt(annualFactor)
   void _computeHV(
     List<KLineEntity> data, {
     int period = 14,
-    double annualFactor = 365, //252.0,
+    double annualFactor = 365.0,
+    String smoothMethod = 'none',
   }) {
     final length = data.length;
     if (length < 2) return;
@@ -1073,7 +1076,7 @@ abstract class BaseChartPainter extends CustomPainter {
     }
 
     // 2) 对 i >= period, 计算过去 [i-period+1 .. i] 的 stdev(logReturns)
-    // 并 annualize, 存到 data[i].hv
+    // 并 annualize, 存到 data[i].hv with smoothing
     for (int i = 0; i < length; i++) {
       if (i < period) {
         data[i].hv = 0; // 或 null
@@ -1097,8 +1100,35 @@ abstract class BaseChartPainter extends CustomPainter {
         // 标准差
         double stdDev = variance >= 0 ? math.sqrt(variance) : 0;
 
+        // Apply smoothing on the standard deviation before annualizing
+        double smoothedStdDev = stdDev;
+        if (i > period) {
+          switch (smoothMethod) {
+            case 'wilder':
+              smoothedStdDev =
+                  (data[i - 1].hv! / 100 * (period - 1) + stdDev) / period;
+              break;
+            case 'ema':
+              double alpha = 2 / (period + 1);
+              smoothedStdDev =
+                  alpha * stdDev + (1 - alpha) * (data[i - 1].hv! / 100);
+              break;
+            case 'double':
+              // First, Wilder smoothing
+              double wilderStdDev =
+                  (data[i - 1].hv! / 100 * (period - 1) + stdDev) / period;
+              // Then, EMA smoothing
+              double alpha = 2 / (period + 1);
+              smoothedStdDev =
+                  alpha * wilderStdDev + (1 - alpha) * (data[i - 1].hv! / 100);
+              break;
+            default:
+              smoothedStdDev = stdDev;
+          }
+        }
+
         // annualize
-        double hvVal = stdDev * math.sqrt(annualFactor);
+        double hvVal = smoothedStdDev * math.sqrt(annualFactor);
 
         // 如果想要显示百分比 => hvVal*=100;
         hvVal *= 100; //常见做法: 乘100再显示 -> 25.3 表示25.3%
@@ -1440,11 +1470,11 @@ abstract class BaseChartPainter extends CustomPainter {
   /// 计算 Stochastic Oscillator: %K(14), %D(3) (默认)
   /// (示例: slow K=14, D=3, 用SMA做%D)
   void _computeStochastic(List<KLineEntity> data,
-      {int periodK = 14, int periodD = 3}) {
+      {int periodK = 14, int periodD = 3, String smoothMethod = 'ema'}) {
     final length = data.length;
     if (length < 2) return;
 
-    // 1) 先算 %K
+    // 1) 先算 %K with smoothing
     for (int i = 0; i < length; i++) {
       if (i < periodK - 1) {
         // 数据不足periodK => stochK设为 null或0
@@ -1468,6 +1498,28 @@ abstract class BaseChartPainter extends CustomPainter {
         } else {
           kValue = (c - lowest) * 100 / denominator;
         }
+
+        // 应用平滑处理
+        if (i > periodK - 1) {
+          switch (smoothMethod) {
+            case 'wilder':
+              kValue = (data[i - 1].stochK! * (periodK - 1) + kValue) / periodK;
+              break;
+            case 'ema':
+              double alpha = 2 / (periodK + 1);
+              kValue = alpha * kValue + (1 - alpha) * data[i - 1].stochK!;
+              break;
+            case 'double':
+              // First, Wilder smoothing
+              double wilderK =
+                  (data[i - 1].stochK! * (periodK - 1) + kValue) / periodK;
+              // Then, EMA smoothing on Wilder result
+              double alpha = 2 / (periodK + 1);
+              kValue = alpha * wilderK + (1 - alpha) * data[i - 1].stochK!;
+              break;
+          }
+        }
+
         if (!kValue.isFinite) kValue = 0;
         data[i].stochK = kValue;
       }
@@ -1707,12 +1759,12 @@ abstract class BaseChartPainter extends CustomPainter {
 
   /// 计算简单的Volatility Indicator = 100 * ATR(period)/Close
   /// [period] 默认14
-  void _computeVolIndicator(List<KLineEntity> data, {int period = 14}) {
+  void _computeVolIndicator(List<KLineEntity> data,
+      {int period = 14, String smoothMethod = 'ema'}) {
     final length = data.length;
     if (length < 2) return;
 
-    // 1) 先用最直观方法计算ATR(period)
-    //    需要TR(i)= max( (high-low), |high-prevClose|, |low-prevClose| )
+    // 1) 先用最直观方法计算TR
     List<double> trArr = List.filled(length, 0);
 
     // 第0条无法与前一条比 => 先用 (high0 - low0)
@@ -1728,10 +1780,11 @@ abstract class BaseChartPainter extends CustomPainter {
       trArr[i] = [range1, range2, range3].reduce((a, b) => a > b ? a : b);
     }
 
-    // 2) 计算Wilder平滑或SMA => ATR
+    // 2) 计算ATR with different smoothing methods
     List<double> atrArr = List.filled(length, 0);
+
+    // Initialize with simple average for the first 'period' data points
     double sumTR = 0;
-    // 前period条先做简单平均(演示)
     for (int i = 0; i < period && i < length; i++) {
       sumTR += trArr[i];
     }
@@ -1739,15 +1792,28 @@ abstract class BaseChartPainter extends CustomPainter {
       atrArr[period - 1] = sumTR / period;
     }
 
-    // 用Wilder平滑： ATR(i)= [ATR(i-1)*(period-1)+TR(i)]/period
     for (int i = period; i < length; i++) {
-      double prevAtr = atrArr[i - 1];
-      double curAtr = ((prevAtr * (period - 1)) + trArr[i]) / period;
-      atrArr[i] = curAtr;
+      switch (smoothMethod) {
+        case 'wilder':
+          double prevAtr = atrArr[i - 1];
+          atrArr[i] = ((prevAtr * (period - 1)) + trArr[i]) / period;
+          break;
+        case 'ema':
+          double alpha = 2 / (period + 1);
+          atrArr[i] = alpha * trArr[i] + (1 - alpha) * atrArr[i - 1];
+          break;
+        case 'double':
+          // First, Wilder smoothing
+          double wilderAtr =
+              ((atrArr[i - 1] * (period - 1)) + trArr[i]) / period;
+          // Then, EMA smoothing on Wilder result
+          double alpha = 2 / (period + 1);
+          atrArr[i] = alpha * wilderAtr + (1 - alpha) * atrArr[i - 1];
+          break;
+      }
     }
 
-    // 3) volIndicator(i)= (ATR(i)/close(i))*100
-    // 对 i < period-1，可视为无有效ATR => volIndicator=0
+    // 3) volIndicator(i) = (ATR(i)/close(i))*100
     for (int i = 0; i < length; i++) {
       if (i < period - 1) {
         data[i].volIndicator = 0;
@@ -1761,6 +1827,98 @@ abstract class BaseChartPainter extends CustomPainter {
           if (!volInd.isFinite) volInd = 0;
           data[i].volIndicator = volInd;
         }
+      }
+    }
+  }
+
+  /// 计算 Aroon 指标的增强版
+  /// [period]        常见默认14
+  /// [calcOsc]       是否计算Aroon Oscillator
+  /// [smoothMethod]  使用何种平滑算法:
+  ///                  - "wilder"   经典Wilder平滑 (默认)
+  ///                  - "ema"      指数平滑(EMA)
+  ///                  - "double"   先Wilder后EMA的双重平滑
+  void _computeAroonAdvanced(
+    List<KLineEntity> data, {
+    int period = 14,
+    bool calcOsc = true,
+    String smoothMethod = 'ema',
+  }) {
+    final length = data.length;
+    if (length < period) {
+      // 少于period，计算不出来或只给默认值
+      for (int i = 0; i < length; i++) {
+        data[i].aroonUp = 0;
+        data[i].aroonDown = 0;
+        if (calcOsc) data[i].aroonOsc = 0;
+      }
+      return;
+    }
+
+    for (int i = 0; i < length; i++) {
+      // 计算区间 [i - period + 1 .. i]，需判越界
+      int start = i - period + 1;
+      if (start < 0) start = 0; // 不够周期就从0开始
+      double highest = -double.infinity;
+      double lowest = double.infinity;
+      int idxHigh = i;
+      int idxLow = i;
+
+      // 在过去 period 根(或到0)里找最高价/最低价以及它们所在索引
+      for (int j = start; j <= i; j++) {
+        double h = data[j].high;
+        double l = data[j].low;
+        if (h > highest) {
+          highest = h;
+          idxHigh = j;
+        }
+        if (l < lowest) {
+          lowest = l;
+          idxLow = j;
+        }
+      }
+
+      // 计算 Up / Down
+      double up = 100.0 * (period - (i - idxHigh)) / period;
+      double down = 100.0 * (period - (i - idxLow)) / period;
+
+      // 防止溢出
+      if (!up.isFinite) up = 0;
+      if (!down.isFinite) down = 0;
+
+      // 平滑处理
+      if (i > 0) {
+        switch (smoothMethod) {
+          case 'wilder':
+            up = (data[i - 1].aroonUp! * (period - 1) + up) / period;
+            down = (data[i - 1].aroonDown! * (period - 1) + down) / period;
+            break;
+          case 'ema':
+            final alpha = 2 / (period + 1);
+            up = alpha * up + (1 - alpha) * data[i - 1].aroonUp!;
+            down = alpha * down + (1 - alpha) * data[i - 1].aroonDown!;
+            break;
+          case 'double':
+            // 先 Wilder 平滑
+            double tempUp = (data[i - 1].aroonUp! * (period - 1) + up) / period;
+            double tempDown =
+                (data[i - 1].aroonDown! * (period - 1) + down) / period;
+            // 再 EMA 平滑
+            final alpha = 2 / (period + 1);
+            up = alpha * tempUp + (1 - alpha) * data[i - 1].aroonUp!;
+            down = alpha * tempDown + (1 - alpha) * data[i - 1].aroonDown!;
+            break;
+        }
+      }
+
+      data[i].aroonUp = up.clamp(0, 100); // 一般区间[0,100]
+      data[i].aroonDown = down.clamp(0, 100);
+
+      // 如果要 AroonOsc
+      if (calcOsc) {
+        double osc = up - down;
+        if (!osc.isFinite) osc = 0;
+        data[i].aroonOsc = osc;
       }
     }
   }
@@ -1854,7 +2012,7 @@ abstract class BaseChartPainter extends CustomPainter {
 
     // 如果勾选了 AROON
     if (secondaryStates.contains(SecondaryState.AROON)) {
-      _computeAroon(datas!, period: 14, calcOsc: true);
+      _computeAroonAdvanced(datas!, period: 14, calcOsc: true);
     }
 
     // 如果用户勾选了SAR
