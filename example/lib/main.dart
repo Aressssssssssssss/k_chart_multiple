@@ -35,8 +35,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool showLoading = true;
   MainState _mainState = MainState.MA;
   bool _volHidden = false;
-  List<SecondaryState> _secondaryStates = [];
-  bool isLine = true;
+  List<SecondaryState> _secondaryStates = [SecondaryState.KDJ];
+  bool isLine = false;
   bool isChinese = true;
   bool _hideGrid = false;
   bool _showNowPrice = true;
@@ -99,7 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
       children: <Widget>[
         Stack(children: <Widget>[
           Container(
-            height: 200 + 80 + 10 + _secondaryStates.length * (80 + 13),
+            height: 400 + 80 + 10 + _secondaryStates.length * (80 + 13),
             width: double.infinity,
             child: KChartWidget(
               datas,
@@ -120,7 +120,7 @@ class _MyHomePageState extends State<MyHomePage> {
               isTapShowInfoDialog: false,
               verticalTextAlignment: _verticalTextAlignment,
               maDayList: [1, 100, 1000],
-              mainHeight: 200,
+              mainHeight: 400,
               secondaryHeight: 80,
             ),
           ),

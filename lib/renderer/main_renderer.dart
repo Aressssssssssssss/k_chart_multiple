@@ -127,6 +127,23 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
       }
       _drawKDJDirectionalSignal(lastPoint, curPoint, lastX, curX, canvas);
     }
+    drawProbability(canvas, curPoint, curX);
+  }
+
+  void drawProbability(Canvas canvas, KLineEntity curPoint, double curX) {
+    if (curPoint.probability == null) return;
+    String text = curPoint.probability!.toStringAsFixed(0);
+    TextPainter tp = TextPainter(
+        text: TextSpan(
+            text: text,
+            style: TextStyle(color: chartColors.defaultTextColor, fontSize: 6)),
+        textDirection: TextDirection.ltr);
+    tp.layout();
+    double x = curX - tp.width / 2;
+    double y = getY(curPoint.low) + tp.height;
+    canvas.drawRect(Rect.fromLTRB(x - 1, y, x + tp.width + 1, y + tp.height),
+        Paint()..color = chartColors.selectFillColor);
+    tp.paint(canvas, Offset(x, y));
   }
 
   void _drawKDJDirectionalSignal(KLineEntity lastPoint, KLineEntity curPoint,
