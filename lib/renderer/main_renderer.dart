@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../entity/candle_entity.dart';
+import '../entity/k_line_entity.dart';
 import '../k_chart_widget.dart' show MainState;
 import 'base_chart_renderer.dart';
 
 enum VerticalTextAlignment { left, right }
+
 //For TrendLine
 double? trendLineMax;
 double? trendLineScale;
@@ -112,7 +114,7 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
   }
 
   @override
-  void drawChart(CandleEntity lastPoint, CandleEntity curPoint, double lastX,
+  void drawChart(KLineEntity lastPoint, KLineEntity curPoint, double lastX,
       double curX, Size size, Canvas canvas) {
     if (isLine) {
       drawPolyline(lastPoint.close, curPoint.close, canvas, lastX, curX);
@@ -123,7 +125,46 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
       } else if (state == MainState.BOLL) {
         drawBollLine(lastPoint, curPoint, canvas, lastX, curX);
       }
+      _drawKDJDirectionalSignal(lastPoint, curPoint, lastX, curX, canvas);
     }
+  }
+
+  void _drawKDJDirectionalSignal(KLineEntity lastPoint, KLineEntity curPoint,
+      double lastX, double curX, Canvas canvas) {
+    if (curPoint.buySignal == true) {
+      _drawSignal(canvas, curX, getY(curPoint.low),
+          this.chartColors.buySignalColor, true);
+    }
+    // 卖出信号：KDJ死叉且价格即将下跌，并且价格触及最近的高点
+    else if (curPoint.sellSignal == true) {
+      _drawSignal(canvas, curX, getY(curPoint.high),
+          this.chartColors.sellSignalColor, false);
+    }
+  }
+
+  void _drawSignal(Canvas canvas, double x, double y, Color color, bool isBuy) {
+    Paint signalPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    Path path = Path();
+
+    if (isBuy) {
+      // 上箭头
+      path
+        ..moveTo(x, y)
+        ..lineTo(x - 5, y + 5)
+        ..lineTo(x + 5, y + 5)
+        ..close();
+    } else {
+      path
+        ..moveTo(x, y)
+        ..lineTo(x - 5, y - 5)
+        ..lineTo(x + 5, y - 5)
+        ..close();
+    }
+
+    canvas.drawPath(path, signalPaint);
   }
 
   Shader? mLineFillShader;
@@ -155,7 +196,10 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       tileMode: TileMode.clamp,
-      colors: [this.chartColors.lineFillColor, this.chartColors.lineFillInsideColor],
+      colors: [
+        this.chartColors.lineFillColor,
+        this.chartColors.lineFillInsideColor
+      ],
     ).createShader(Rect.fromLTRB(
         chartRect.left, chartRect.top, chartRect.right, chartRect.bottom));
     mLineFillPaint..shader = mLineFillShader;

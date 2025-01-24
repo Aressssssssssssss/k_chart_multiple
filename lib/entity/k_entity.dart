@@ -2,6 +2,7 @@ import 'adl_entity.dart';
 import 'adx_entiry.dart';
 import 'aroon_entity.dart';
 import 'atr_entity.dart';
+import 'bssignal_entity.dart';
 import 'candle_entity.dart';
 import 'dem_entiry.dart';
 import 'env_entity.dart';
@@ -60,4 +61,5 @@ class KEntity
         MOMENTUMEntity,
         MFIEntity,
         ENVEntity,
-        VOLIEntity {}
+        VOLIEntity,
+        BSSIGNALEntity {}

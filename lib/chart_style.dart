@@ -20,6 +20,7 @@ class ChartColors {
   Color kColor = Color(0xffC9B885);
   Color dColor = Color(0xff6CB0A6);
   Color jColor = Color(0xff9979C6);
+
   Color rsiColor = Color(0xffC9B885);
 
   Color defaultTextColor = Color(0xff60738E);
@@ -140,6 +141,9 @@ class ChartColors {
   Color envDnColor = Colors.red; // 下轨
 
   Color volIndicatorColor = Colors.blueGrey;
+
+  Color buySignalColor = Colors.green;
+  Color sellSignalColor = Colors.red;
 }
 
 class ChartStyle {

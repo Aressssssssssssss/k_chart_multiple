@@ -13,6 +13,55 @@ class DataUtil {
     calcRSI(dataList);
     calcWR(dataList);
     calcCCI(dataList);
+    calculateSignals(dataList);
+  }
+
+  static void calculateSignals(List<KLineEntity> dataList) {
+    // 您的其他计算代码
+
+    for (int i = 0; i < dataList.length; i++) {
+      final curPoint = dataList[i];
+      if (i > 0) {
+        final lastPoint = dataList[i - 1];
+        _calculateDirectionalSignal(lastPoint, curPoint, dataList);
+      } else {
+        curPoint.buySignal = false;
+        curPoint.sellSignal = false;
+      }
+    }
+  }
+
+  static void _calculateDirectionalSignal(
+      KLineEntity lastPoint, KLineEntity curPoint, List<KLineEntity> datas) {
+    if (lastPoint.k == null ||
+        lastPoint.d == null ||
+        curPoint.k == null ||
+        curPoint.d == null ||
+        datas.isEmpty) {
+      return;
+    }
+
+    double lastK = lastPoint.k!;
+    double lastD = lastPoint.d!;
+    double curK = curPoint.k!;
+    double curD = curPoint.d!;
+
+    double priceChangeThreshold = 0.002;
+    double priceChange = (curPoint.close - lastPoint.close) / lastPoint.close;
+
+    // 买入信号：KDJ 金叉即可，并结合价格出现小幅度上涨
+    if (lastK < lastD && curK > curD && priceChange >= priceChangeThreshold) {
+      curPoint.buySignal = true;
+    } else {
+      curPoint.buySignal = false;
+    }
+
+    // 卖出信号：KDJ 死叉，且价格出现小幅度下跌
+    if (lastK > lastD && curK < curD && priceChange <= -priceChangeThreshold) {
+      curPoint.sellSignal = true;
+    } else {
+      curPoint.sellSignal = false;
+    }
   }
 
   static calcMA(List<KLineEntity> dataList, List<int> maDayList) {
