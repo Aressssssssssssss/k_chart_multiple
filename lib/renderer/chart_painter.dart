@@ -1,18 +1,7 @@
 import 'dart:async' show StreamSink;
 
 import 'package:flutter/material.dart';
-import 'package:k_chart_multiple/utils/number_util.dart';
-
-import '../entity/info_window_entity.dart';
-import '../entity/k_line_entity.dart';
 import '../flutter_k_chart.dart';
-import '../utils/date_format_util.dart';
-import 'base_chart_painter.dart';
-import 'base_chart_renderer.dart';
-import 'main_renderer.dart';
-import 'secondary_renderer.dart';
-import 'vol_renderer.dart';
-import 'package:k_chart_multiple/k_chart_widget.dart';
 
 class TrendLine {
   final Offset p1;
@@ -54,6 +43,9 @@ class ChartPainter extends BaseChartPainter {
   final bool showNowPrice;
   final VerticalTextAlignment verticalTextAlignment;
 
+  final double? mainHeight; // 新增参数：主图高度
+  final double? secondaryHeight; // 新增参数：次图高度
+
   ChartPainter(this.chartStyle, this.chartColors,
       {required this.lines, //For TrendLine
       required this.isTrendLine, //For TrendLine
@@ -71,6 +63,8 @@ class ChartPainter extends BaseChartPainter {
       isShowMainState,
       required this.secondaryStates,
       this.sink,
+      this.mainHeight, // 接收主图高度
+      this.secondaryHeight, // 接收次图高度
       bool isLine = false,
       this.hideGrid = false,
       this.showNowPrice = true,
@@ -113,6 +107,9 @@ class ChartPainter extends BaseChartPainter {
 
     // 初始化主图表渲染器
     if (isShowMainState) {
+      double mainRectHeight =
+          mainHeight ?? (mDisplayHeight * 0.6); // 使用自定义或默认高度
+      mMainRect = Rect.fromLTRB(0, 0, mWidth, mainRectHeight); // 主图区域定义
       print('[initChartRenderer] Main Renderer Initialized');
     } else {
       mMainRect = Rect.fromLTRB(0, 0, 0, 0); // 主图表高度设置为 0
@@ -134,6 +131,14 @@ class ChartPainter extends BaseChartPainter {
     );
 
     if (mVolRect != null) {
+      double volRectHeight =
+          secondaryHeight ?? (mDisplayHeight * 0.2); // 使用次图高度或默认值
+      mVolRect = Rect.fromLTRB(
+        0,
+        mMainRect.bottom + mChildPadding,
+        mWidth,
+        mMainRect.bottom + mChildPadding + volRectHeight,
+      );
       mVolRenderer = VolRenderer(
           mVolRect!,
           mVolMaxValue,
@@ -147,14 +152,22 @@ class ChartPainter extends BaseChartPainter {
     }
 
     secondaryRenderers.clear();
+    // double secondaryTop = mMainRect.bottom + (mVolRect?.height ?? 0) + mChildPadding;
     double secondaryTop =
-        mMainRect.bottom + (mVolRect?.height ?? 0) + mChildPadding;
+        mVolRect?.bottom ?? mMainRect.bottom; // 基于成交量图的底部作为初始位置
+
     for (int i = 0; i < secondaryStates.length; i++) {
+      double secondaryRectHeight = secondaryHeight ??
+          (mDisplayHeight * 0.2) - mChildPadding; // 使用自定义或默认高度
+
+      double newSecondaryRectHeight = i * (secondaryRectHeight + mChildPadding);
+      if (i == 0) newSecondaryRectHeight = newSecondaryRectHeight + 10;
+
       Rect secondaryRect = Rect.fromLTRB(
         0,
-        secondaryTop + i * (mDisplayHeight * 0.2 + mChildPadding) + 10,
+        secondaryTop + newSecondaryRectHeight, // 累积次图高度
         mWidth,
-        secondaryTop + (i + 1) * mDisplayHeight * 0.2,
+        secondaryTop + ((i + 1) * secondaryRectHeight) + (i * mChildPadding),
       );
 
       // 这里从BaseChartPainter里拿对应的 max/min Map

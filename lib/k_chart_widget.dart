@@ -86,6 +86,9 @@ class KChartWidget extends StatefulWidget {
   final VerticalTextAlignment verticalTextAlignment;
   final bool isTrendLine;
 
+  final double? mainHeight; // 新增参数：主图高度
+  final double? secondaryHeight; // 新增参数：次图高度
+
   KChartWidget(
     this.datas,
     this.chartStyle,
@@ -113,6 +116,8 @@ class KChartWidget extends StatefulWidget {
     this.flingCurve = Curves.decelerate,
     this.isOnDrag,
     this.verticalTextAlignment = VerticalTextAlignment.left,
+    this.mainHeight,
+    this.secondaryHeight,
   });
 
   @override
@@ -186,6 +191,8 @@ class _KChartWidgetState extends State<KChartWidget>
       volHidden: widget.volHidden,
       isShowMainState: widget.isShowMainState,
       secondaryStates: widget.secondaryStates,
+      mainHeight: widget.mainHeight,
+      secondaryHeight: widget.secondaryHeight,
       isLine: widget.isLine,
       hideGrid: widget.hideGrid,
       showNowPrice: widget.showNowPrice,
