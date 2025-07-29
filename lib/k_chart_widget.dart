@@ -300,7 +300,7 @@ class _KChartWidgetState extends State<KChartWidget>
               changeinYposition = details.globalPosition.dy;
               notifyChanged();
             }
-            print('[onLongPressStart] SelectX: $mSelectX, SelectY: $mSelectY');
+            // print('[onLongPressStart] SelectX: $mSelectX, SelectY: $mSelectY');
           },
           onLongPressMoveUpdate: (details) {
             if ((mSelectX != details.globalPosition.dx ||

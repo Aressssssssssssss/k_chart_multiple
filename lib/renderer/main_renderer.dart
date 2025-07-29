@@ -132,7 +132,7 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
 
   void drawProbability(Canvas canvas, KLineEntity curPoint, double curX) {
     if (curPoint.probability == null) return;
-    String text = curPoint.probability!.toStringAsFixed(0);
+    String text = (curPoint.probability! * 100).toStringAsFixed(0);
     TextPainter tp = TextPainter(
         text: TextSpan(
             text: text,

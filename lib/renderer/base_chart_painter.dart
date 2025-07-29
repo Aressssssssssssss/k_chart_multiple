@@ -200,9 +200,9 @@ abstract class BaseChartPainter extends CustomPainter {
     }
 
     // 添加日志
-    print('[initRect] Main Rect: $mMainRect');
-    print('[initRect] Vol Rect: $mVolRect');
-    print('[initRect] Secondary Rect: $mSecondaryRect');
+    // print('[initRect] Main Rect: $mMainRect');
+    // print('[initRect] Vol Rect: $mVolRect');
+    // print('[initRect] Secondary Rect: $mSecondaryRect');
   }
 
   calculateValue() {
@@ -497,7 +497,7 @@ abstract class BaseChartPainter extends CustomPainter {
         mSecondaryMaxMap[st] = newMax;
         mSecondaryMinMap[st] = newMin;
 
-        print('[getSecondaryMaxMinValue] Max: $newMax, Min: $newMin');
+        // print('[getSecondaryMaxMinValue] Max: $newMax, Min: $newMin');
       }
     }
   }
@@ -561,12 +561,12 @@ abstract class BaseChartPainter extends CustomPainter {
 
   void getSecondaryMaxMinValue(KLineEntity item) {
     for (var secondaryState in secondaryStates) {
-      print(
-          'State: $secondaryState, MACD: ${item.macd}, DIF: ${item.dif}, DEA: ${item.dea}');
-      print('Calculating SecondaryState: $secondaryState');
-      print('MACD: ${item.macd}, DIF: ${item.dif}, DEA: ${item.dea}');
-      print('KDJ: K=${item.k}, D=${item.d}, J=${item.j}');
-      print('RSI: ${item.rsi}, WR: ${item.r}, CCI: ${item.cci}');
+      // print(
+      //     'State: $secondaryState, MACD: ${item.macd}, DIF: ${item.dif}, DEA: ${item.dea}');
+      // print('Calculating SecondaryState: $secondaryState');
+      // print('MACD: ${item.macd}, DIF: ${item.dif}, DEA: ${item.dea}');
+      // print('KDJ: K=${item.k}, D=${item.d}, J=${item.j}');
+      // print('RSI: ${item.rsi}, WR: ${item.r}, CCI: ${item.cci}');
 
       double mSecondaryMaxValue = double.minPositive;
       double mSecondaryMinValue = double.maxFinite;
@@ -603,8 +603,8 @@ abstract class BaseChartPainter extends CustomPainter {
         mSecondaryMinValue = 0;
       }
       // 添加日志
-      print('[getSecondaryMaxMinValue] State: $secondaryState, '
-          'Max: $mSecondaryMaxValue, Min: $mSecondaryMinValue');
+      // print('[getSecondaryMaxMinValue] State: $secondaryState, '
+      //     'Max: $mSecondaryMaxValue, Min: $mSecondaryMinValue');
     }
   }
 

@@ -110,7 +110,7 @@ class ChartPainter extends BaseChartPainter {
       double mainRectHeight =
           mainHeight ?? (mDisplayHeight * 0.6); // 使用自定义或默认高度
       mMainRect = Rect.fromLTRB(0, 0, mWidth, mainRectHeight); // 主图区域定义
-      print('[initChartRenderer] Main Renderer Initialized');
+      // print('[initChartRenderer] Main Renderer Initialized');
     } else {
       mMainRect = Rect.fromLTRB(0, 0, 0, 0); // 主图表高度设置为 0
     }
@@ -147,8 +147,8 @@ class ChartPainter extends BaseChartPainter {
           fixedLength,
           this.chartStyle,
           this.chartColors) as BaseChartRenderer?;
-      print(
-          '[initChartRenderer] Volume Renderer Initialized: Rect = $mVolRect');
+      // print(
+      //     '[initChartRenderer] Volume Renderer Initialized: Rect = $mVolRect');
     }
 
     secondaryRenderers.clear();
@@ -188,12 +188,12 @@ class ChartPainter extends BaseChartPainter {
       );
 
       secondaryRenderers.add(renderer);
-      print('[initChartRenderer] Initialized Secondary Renderer [$i]: '
-          'State: ${secondaryStates[i]}, Rect: $secondaryRect');
+      // print('[initChartRenderer] Initialized Secondary Renderer [$i]: '
+      //     'State: ${secondaryStates[i]}, Rect: $secondaryRect');
     }
 
-    print(
-        '[initChartRenderer] Secondary Renderers Count: ${secondaryRenderers.length}');
+    // print(
+    //     '[initChartRenderer] Secondary Renderers Count: ${secondaryRenderers.length}');
   }
 
   @override
@@ -264,7 +264,7 @@ class ChartPainter extends BaseChartPainter {
       }
 
       for (int j = 0; j < secondaryRenderers.length; j++) {
-        print('[drawChart] Renderer [$j]: Drawing state ${secondaryStates[j]}');
+        // print('[drawChart] Renderer [$j]: Drawing state ${secondaryStates[j]}');
 
         secondaryRenderers[j]?.drawChart(
           lastPoint,
@@ -275,8 +275,8 @@ class ChartPainter extends BaseChartPainter {
           canvas,
         );
         // 添加日志
-        print('[drawChart] Renderer [$j]: State = ${secondaryStates[j]}, '
-            'Rect = ${secondaryRenderers[j]?.rect}');
+        // print('[drawChart] Renderer [$j]: State = ${secondaryStates[j]}, '
+        //     'Rect = ${secondaryRenderers[j]?.rect}');
       }
     }
 

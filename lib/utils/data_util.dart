@@ -13,8 +13,6 @@ class DataUtil {
     calcRSI(dataList);
     calcWR(dataList);
     calcCCI(dataList);
-    calculateSignals(dataList);
-    _calculateProbabilities(dataList);
     _computePPO;
     _computeTRIX(dataList);
     _computeDMIAdvanced(dataList);
@@ -40,428 +38,292 @@ class DataUtil {
     _computeEnvelopes(dataList);
     _computeVolIndicator(dataList);
     _computeAroonAdvanced(dataList);
+
+    // _calculateSignals(dataList);
+    _calculateProbabilities(dataList);
   }
 
-  static void _calculateProbabilities(List<KLineEntity> dataList,
-      {double kdjWeightFactor = 0.5,
-      double macdWeightFactor = 0.3,
-      double rsiWeightFactor = 0.1,
-      double bollWeightFactor = 0.1,
-      double volumeWeightFactor = 0.1,
-      double dmiWeightFactor = 0.05,
-      double trixWeightFactor = 0.05,
-      double ppoWeightFactor = 0.05,
-      double tsiWeightFactor = 0.05,
-      double ichimokuWeightFactor = 0.05,
-      double sarWeightFactor = 0.02,
-      double aroonWeightFactor = 0.02,
-      double vortexWeightFactor = 0.02,
-      double atrWeightFactor = 0.02,
-      double hvWeightFactor = 0.02,
-      double vwapWeightFactor = 0.02,
-      double obvWeightFactor = 0.02,
-      double adlWeightFactor = 0.02,
-      double vixWeightFactor = 0.02,
-      double adxWeightFactor = 0.02,
-      double stdDevWeightFactor = 0.02,
-      double stochasticWeightFactor = 0.02,
-      double wprWeightFactor = 0.02,
-      double demarkerWeightFactor = 0.02,
-      double momentumWeightFactor = 0.02,
-      double mfiWeightFactor = 0.02,
-      double envelopesWeightFactor = 0.02,
-      double volatilityWeightFactor = 0.02,
-      double maWeightFactor = 0.1}) {
+  static void _calculateProbabilities(List<KLineEntity> dataList) {
     if (dataList.length < 3) {
       return;
     }
+
+    // 保存过去的概率以进行平滑处理
+    List<double> previousProbabilities = [];
+
     for (int i = 2; i < dataList.length; i++) {
       final cur = dataList[i];
-      final last = dataList[i - 1];
       double upProbability = 0;
-      double kdjWeight = 0;
-      double macdWeight = 0;
-      double rsiWeight = 0;
-      double bollWeight = 0;
-      double volumeWeight = 0;
-      double maWeight = 0;
-      double dmiWeight = 0;
-      double trixWeight = 0;
-      double ppoWeight = 0;
-      double tsiWeight = 0;
-      double ichimokuWeight = 0;
-      double sarWeight = 0;
-      double aroonWeight = 0;
-      double vortexWeight = 0;
-      double atrWeight = 0;
-      double hvWeight = 0;
-      double vwapWeight = 0;
-      double obvWeight = 0;
-      double adlWeight = 0;
-      double vixWeight = 0;
-      double adxWeight = 0;
-      double stdDevWeight = 0;
-      double stochasticWeight = 0;
-      double wprWeight = 0;
-      double demarkerWeight = 0;
-      double momentumWeight = 0;
-      double mfiWeight = 0;
-      double envelopesWeight = 0;
-      double volatilityWeight = 0;
+      double totalWeight = 0;
 
-      // 1. KDJ
-      kdjWeight = _calculateKDJWeight(cur, last, kdjWeightFactor);
-      // 2. MACD
-      macdWeight = _calculateMACDWeight(cur, last, macdWeightFactor);
+      String marketCondition = _determineMarketCondition(dataList[i]);
+      final Map<String, double> weightConfig =
+          _getIndicatorWeights(marketCondition);
 
-      // 3. RSI
-      rsiWeight = _calculateRSIWeight(cur, last, rsiWeightFactor);
+      for (var entry in weightConfig.entries) {
+        String indicator = entry.key;
+        double weight = entry.value;
 
-      // 4. 布林带
-      bollWeight = _calculateBOLLWeight(cur, bollWeightFactor);
-      // 5. 成交量
-      volumeWeight = _calculateVolumeWeight(cur, last, volumeWeightFactor);
-      // 6. MA均线
-      maWeight = _calculateMAWeight(cur, last, maWeightFactor);
+        Map<String, double> params = _getParamsForIndicator(cur, indicator);
+        double signal = _calculateSignal(indicator, params);
 
-      dmiWeight = _calculateDMIWeight(cur, last, dmiWeightFactor);
-      trixWeight = _calculateTRIXWeight(cur, last, trixWeightFactor);
-      ppoWeight = _calculatePPOWeight(cur, last, ppoWeightFactor);
-      tsiWeight = _calculateTSIWeight(cur, tsiWeightFactor);
-      ichimokuWeight = _calculateIchimokuWeight(cur, ichimokuWeightFactor);
-      sarWeight = _calculateSARWeight(cur, sarWeightFactor);
-      aroonWeight = _calculateAroonWeight(cur, aroonWeightFactor);
-      vortexWeight = _calculateVortexWeight(cur, vortexWeightFactor);
-      atrWeight = _calculateATRWeight(cur, atrWeightFactor);
-      hvWeight = _calculateHVWeight(cur, hvWeightFactor);
-      vwapWeight = _calculateVWAPWeight(cur, vwapWeightFactor);
-      obvWeight = _calculateOBVWeight(cur, obvWeightFactor);
-      adlWeight = _calculateADLWeight(cur, adlWeightFactor);
-      vixWeight = _calculateVIXWeight(cur, vixWeightFactor);
-      adxWeight = _calculateADXWeight(cur, last, adxWeightFactor);
-      stdDevWeight = _calculateStdDevWeight(cur, stdDevWeightFactor);
-      stochasticWeight =
-          _calculateStochasticWeight(cur, stochasticWeightFactor);
-      wprWeight = _calculateWPRWeight(cur, wprWeightFactor);
-      demarkerWeight = _calculateDemarkerWeight(cur, demarkerWeightFactor);
-      momentumWeight = _calculateMomentumWeight(cur, momentumWeightFactor);
-      mfiWeight = _calculateMFIWeight(cur, mfiWeightFactor);
-      envelopesWeight = _calculateEnvelopesWeight(cur, envelopesWeightFactor);
-      volatilityWeight =
-          _calculateVolIndicatorWeight(cur, volatilityWeightFactor);
-
-      upProbability = (kdjWeight +
-              macdWeight +
-              rsiWeight +
-              bollWeight +
-              volumeWeight +
-              maWeight +
-              dmiWeight +
-              trixWeight +
-              ppoWeight +
-              tsiWeight +
-              ichimokuWeight +
-              sarWeight +
-              aroonWeight +
-              vortexWeight +
-              atrWeight +
-              hvWeight +
-              vwapWeight +
-              obvWeight +
-              adlWeight +
-              vixWeight +
-              stdDevWeight +
-              stochasticWeight +
-              wprWeight +
-              demarkerWeight +
-              momentumWeight +
-              mfiWeight +
-              envelopesWeight +
-              volatilityWeight) *
-          100 /
-          1;
-
-      if (upProbability.isNegative || upProbability.isNaN) {
-        upProbability = 0;
+        upProbability += signal * weight;
+        totalWeight += weight;
       }
+
+      upProbability = (upProbability / totalWeight).clamp(0.01, 0.99);
+
+      // 平滑处理
+      if (previousProbabilities.isNotEmpty) {
+        upProbability = (upProbability + previousProbabilities.last) / 2.0;
+      }
+
+      if (i > 2) {
+        // 使用前一根蜡烛的概率值进行平滑
+        upProbability = (upProbability + dataList[i - 1].probability!) / 2.0;
+      }
+
+      previousProbabilities.add(upProbability);
+
       cur.probability = upProbability;
+      // print('Probability: $upProbability');
     }
   }
 
-  static double _calculateKDJWeight(
-      KLineEntity cur, KLineEntity last, double kdjWeightFactor) {
-    bool kdjBuySignal = false;
-    if (cur.k != null &&
-        cur.d != null &&
-        cur.j != null &&
-        last.k != null &&
-        last.d != null &&
-        last.j != null) {
-      double smoothCurK = (cur.k! + (cur.k ?? 0 * 2)) / 3;
-      double smoothCurD = (cur.d! + (cur.d ?? 0 * 2)) / 3;
-      double smoothLastK = (last.k! + (last.k ?? 0 * 2)) / 3;
-      double smoothLastD = (last.d! + (last.d ?? 0 * 2)) / 3;
+  /// 改进后的市场状态判断
+  /// 动态判断市场状态
+  static String _determineMarketCondition(KLineEntity entity) {
+    // 默认阈值（可以根据需求调整）
+    const double adxTrendThreshold = 25.0; // ADX 趋势强度阈值
+    const double macdTrendThreshold = 0.02; // MACD 信号阈值（DIF 和 DEA 差值）
+    const double sidewaysRange = 0.005; // 横盘整理的价格变动范围（百分比）
+    const double volatilityThreshold = 0.03; // 波动性阈值（ATR 占价格比例）
+    const double weakTrendThreshold = 0.01; // 弱趋势阈值（价格变动比例）
 
-      if (smoothLastK < smoothLastD &&
-          smoothCurK > smoothCurD &&
-          cur.j! > last.j!) {
-        kdjBuySignal = true;
+    // 提取指标数据
+    double adx = entity.adx ?? 0.0;
+    double dif = entity.dif ?? 0.0;
+    double dea = entity.dea ?? 0.0;
+    double closePrice = entity.close ?? 0.0;
+    double prevClosePrice = closePrice;
+    double atr = entity.atr ?? 0.0;
+
+    // 计算市场状态指标
+    double macdHist = dif - dea; // MACD 柱状图
+    double priceChange =
+        (closePrice - prevClosePrice).abs() / prevClosePrice; // 收盘价变动百分比
+    double volatility = atr / closePrice; // ATR 波动占比
+
+    // 判断市场状态
+    if (adx >= adxTrendThreshold) {
+      // ADX 显示明显趋势
+      if (macdHist > macdTrendThreshold) {
+        return 'trendingUp'; // 明显上升趋势
+      } else if (macdHist < -macdTrendThreshold) {
+        return 'trendingDown'; // 明显下降趋势
       }
-    }
-    return kdjBuySignal ? kdjWeightFactor : 0;
-  }
-
-  static double _calculateMACDWeight(
-      KLineEntity cur, KLineEntity last, double macdWeightFactor) {
-    bool macdBuySignal = false;
-    if (cur.macd != null && cur.dif != null && cur.dea != null) {
-      if (cur.macd! > 0 &&
-          cur.dif! > cur.dea! &&
-          cur.macd! > (last.macd ?? 0)) {
-        macdBuySignal = true;
+    } else if (priceChange <= weakTrendThreshold) {
+      // 缓慢价格变动
+      if (macdHist > 0) {
+        return 'weakTrendingUp'; // 缓慢上升趋势
+      } else if (macdHist < 0) {
+        return 'weakTrendingDown'; // 缓慢下降趋势
       }
+    } else if (priceChange <= sidewaysRange) {
+      // 横盘整理
+      return 'sideways';
+    } else if (volatility >= volatilityThreshold) {
+      // 波动较大
+      return 'volatile';
     }
-    return macdBuySignal ? macdWeightFactor : 0;
+
+    // 默认返回横盘整理状态
+    return 'sideways';
   }
 
-  static double _calculateRSIWeight(
-      KLineEntity cur, KLineEntity last, double rsiWeightFactor) {
-    bool rsiBuySignal = false;
-    if (cur.rsi != null) if (cur.rsi! > 30 ||
-        (cur.rsi! > 70 && cur.rsi! > (last.rsi ?? 0))) {
-      rsiBuySignal = true;
-    }
-    return rsiBuySignal ? rsiWeightFactor : 0;
-  }
-
-  static double _calculateBOLLWeight(KLineEntity cur, double bollWeightFactor) {
-    bool bollBuySignal = false;
-    if (cur.mb != null && cur.low != null) if (cur.low! < cur.mb!) {
-      bollBuySignal = true;
-    }
-    return bollBuySignal ? bollWeightFactor : 0;
-  }
-
-  static double _calculateVolumeWeight(
-      KLineEntity cur, KLineEntity last, double volumeWeightFactor) {
-    bool volumeUpSignal = false;
-    if (cur.vol > (last.vol ?? 0) && (cur.close > (last.close ?? 0))) {
-      volumeUpSignal = true;
-    }
-    return volumeUpSignal ? volumeWeightFactor : 0;
-  }
-
-  static double _calculateMAWeight(
-      KLineEntity cur, KLineEntity last, double maWeightFactor) {
-    bool maBuySignal = false;
-    if (cur.maValueList != null &&
-        cur.maValueList!.isNotEmpty &&
-        last.maValueList != null &&
-        last.maValueList!.isNotEmpty) if (cur.close >
-            cur.maValueList!.first &&
-        cur.maValueList!.first > last.maValueList!.first) {
-      maBuySignal = true;
-    }
-    return maBuySignal ? maWeightFactor : 0;
-  }
-
-  static double _calculateDMIWeight(
-      KLineEntity cur, KLineEntity last, double dmiWeightFactor) {
-    bool dmiBuySignal = false;
-    if (cur.adx != null && cur.pdi != null && cur.mdi != null) if (cur.adx! >
-            25 &&
-        cur.adx! > (last.adx ?? 0) &&
-        cur.pdi! > cur.mdi!) {
-      dmiBuySignal = true;
-    }
-    return dmiBuySignal ? dmiWeightFactor : 0;
-  }
-
-  static double _calculateTRIXWeight(
-      KLineEntity cur, KLineEntity last, double trixWeightFactor) {
-    bool trixBuySignal = false;
-    if (cur.trix != null && cur.trixSignal != null) if (cur.trix! >
-        cur.trixSignal!) {
-      trixBuySignal = true;
-    }
-    return trixBuySignal ? trixWeightFactor : 0;
-  }
-
-  static double _calculatePPOWeight(
-      KLineEntity cur, KLineEntity last, double ppoWeightFactor) {
-    bool ppoBuySignal = false;
-    if (cur.ppo != null && cur.ppoSignal != null) if (cur.ppo! > cur.ppoSignal!)
-      ppoBuySignal = true;
-    return ppoBuySignal ? ppoWeightFactor : 0;
-  }
-
-  static double _calculateTSIWeight(KLineEntity cur, double tsiWeightFactor) {
-    bool tsiBuySignal = false;
-    if (cur.tsi != null && cur.tsiSignal != null) if (cur.tsi! >
-        cur.tsiSignal!) {
-      tsiBuySignal = true;
-    }
-    return tsiBuySignal ? tsiWeightFactor : 0;
-  }
-
-  static double _calculateIchimokuWeight(
-      KLineEntity cur, double ichimokuWeightFactor) {
-    bool ichimokuBuySignal = false;
-    if (cur.ichimokuTenkan != null && cur.ichimokuKijun != null) if (cur
-            .ichimokuTenkan! >
-        cur.ichimokuKijun!) {
-      ichimokuBuySignal = true;
-    }
-    return ichimokuBuySignal ? ichimokuWeightFactor : 0;
-  }
-
-  static double _calculateSARWeight(KLineEntity cur, double sarWeightFactor) {
-    bool sarBuySignal = false;
-    if (cur.psar != null) if (cur.close > cur.psar!) {
-      sarBuySignal = true;
-    }
-    return sarBuySignal ? sarWeightFactor : 0;
-  }
-
-  static double _calculateAroonWeight(
-      KLineEntity cur, double aroonWeightFactor) {
-    bool aroonBuySignal = false;
-    if (cur.aroonUp != null && cur.aroonDown != null) if (cur.aroonUp! >
-        cur.aroonDown!) {
-      aroonBuySignal = true;
-    }
-    return aroonBuySignal ? aroonWeightFactor : 0;
-  }
-
-  static double _calculateVortexWeight(
-      KLineEntity cur, double vortexWeightFactor) {
-    bool vortexBuySignal = false;
-    if (cur.viPlus != null && cur.viMinus != null) if (cur.viPlus! >
-        cur.viMinus!) {
-      vortexBuySignal = true;
-    }
-    return vortexBuySignal ? vortexWeightFactor : 0;
-  }
-
-  static double _calculateATRWeight(KLineEntity cur, double atrWeightFactor) {
-    bool atrBuySignal = false;
-    if (cur.atr != null) if (cur.atr! > 0) atrBuySignal = true;
-    return atrBuySignal ? atrWeightFactor : 0;
-  }
-
-  static double _calculateHVWeight(KLineEntity cur, double hvWeightFactor) {
-    bool hvBuySignal = false;
-    if (cur.hv != null) if (cur.hv! > 0) {
-      hvBuySignal = true;
-    }
-    return hvBuySignal ? hvWeightFactor : 0;
-  }
-
-  static double _calculateVWAPWeight(KLineEntity cur, double vwapWeightFactor) {
-    bool vwapBuySignal = false;
-    if (cur.vwap != null) if (cur.close > cur.vwap!) vwapBuySignal = true;
-    return vwapBuySignal ? vwapWeightFactor : 0;
-  }
-
-  static double _calculateOBVWeight(KLineEntity cur, double obvWeightFactor) {
-    bool obvBuySignal = false;
-    if (cur.obvEma != null) if (cur.obvEma! > 0) obvBuySignal = true;
-    return obvBuySignal ? obvWeightFactor : 0;
-  }
-
-  static double _calculateADLWeight(KLineEntity cur, double adlWeightFactor) {
-    bool adlBuySignal = false;
-    if (cur.adl != null) if (cur.adl! > 0) adlBuySignal = true;
-    return adlBuySignal ? adlWeightFactor : 0;
-  }
-
-  static double _calculateVIXWeight(KLineEntity cur, double vixWeightFactor) {
-    bool vixBuySignal = false;
-    if (cur.vix != null) if (cur.vix! < 25) vixBuySignal = true;
-    return vixBuySignal ? vixWeightFactor : 0;
-  }
-
-  static double _calculateADXWeight(
-      KLineEntity cur, KLineEntity last, double adxWeightFactor) {
-    bool adxBuySignal = false;
-    if (cur.adx != null && cur.adx! > 25 && cur.adx! > (last.adx ?? 0))
-      adxBuySignal = true;
-    return adxBuySignal ? adxWeightFactor : 0;
-  }
-
-  static double _calculateStdDevWeight(
-      KLineEntity cur, double stdDevWeightFactor) {
-    bool stdDevBuySignal = false;
-    if (cur.stdDev != null) if (cur.stdDev! > 0) stdDevBuySignal = true;
-    return stdDevBuySignal ? stdDevWeightFactor : 0;
-  }
-
-  static double _calculateStochasticWeight(
-      KLineEntity cur, double stochasticWeightFactor) {
-    bool stochasticBuySignal = false;
-    if (cur.stochK != null &&
-        cur.stochD != null) if (cur.stochK! > cur.stochD! && cur.stochK! < 70)
-      stochasticBuySignal = true;
-    return stochasticBuySignal ? stochasticWeightFactor : 0;
-  }
-
-  static double _calculateWPRWeight(KLineEntity cur, double wprWeightFactor) {
-    bool wprBuySignal = false;
-    if (cur.wpr != null) if (cur.wpr! > -80) wprBuySignal = true;
-    return wprBuySignal ? wprWeightFactor : 0;
-  }
-
-  static double _calculateDemarkerWeight(
-      KLineEntity cur, double demarkerWeightFactor) {
-    bool demarkerBuySignal = false;
-    if (cur.dem != null) if (cur.dem! > 0.3) demarkerBuySignal = true;
-    return demarkerBuySignal ? demarkerWeightFactor : 0;
-  }
-
-  static double _calculateMomentumWeight(
-      KLineEntity cur, double momentumWeightFactor) {
-    bool momentumBuySignal = false;
-    if (cur.momentum != null) if (cur.momentum! > 0) momentumBuySignal = true;
-    return momentumBuySignal ? momentumWeightFactor : 0;
-  }
-
-  static double _calculateMFIWeight(KLineEntity cur, double mfiWeightFactor) {
-    bool mfiBuySignal = false;
-    if (cur.mfi != null) if (cur.mfi! > 30) mfiBuySignal = true;
-    return mfiBuySignal ? mfiWeightFactor : 0;
-  }
-
-  static double _calculateEnvelopesWeight(
-      KLineEntity cur, double envelopesWeightFactor) {
-    bool envelopesBuySignal = false;
-    if (cur.envMid != null && cur.envDn != null) if (cur.close < cur.envDn!)
-      envelopesBuySignal = true;
-    return envelopesBuySignal ? envelopesWeightFactor : 0;
-  }
-
-  static double _calculateVolIndicatorWeight(
-      KLineEntity cur, double volatilityWeightFactor) {
-    bool volatilityBuySignal = false;
-    if (cur.volIndicator != null && cur.volIndicator! < 1)
-      volatilityBuySignal = true;
-    return volatilityBuySignal ? volatilityWeightFactor : 0;
-  }
-
-  static void calculateSignals(List<KLineEntity> dataList) {
-    // 您的其他计算代码
-    for (int i = 0; i < dataList.length; i++) {
-      final curPoint = dataList[i];
-      if (i > 0) {
-        final lastPoint = dataList[i - 1];
-        _calculateDirectionalSignal(lastPoint, curPoint, dataList);
-      } else {
-        curPoint.buySignal = false;
-        curPoint.sellSignal = false;
-      }
+  /// 根据市场条件获取指标权重配置
+  /// 获取指标权重
+  static Map<String, double> _getIndicatorWeights(String marketCondition) {
+    switch (marketCondition) {
+      case 'trendingUp': // 市场处于明显上升趋势
+        return {
+          'MACD': 0.4, // MACD 更重要
+          'ADX': 0.3, // 趋势强度
+          'RSI': 0.2, // 超买超卖
+          'Ichimoku': 0.1, // 云图确认趋势
+          'WR': 0.0, // 辅助指标
+          'TRIX': 0.0, // 辅助指标
+          'CCI': 0.0, // 辅助指标
+        };
+      case 'trendingDown': // 市场处于明显下降趋势
+        return {
+          'MACD': 0.4, // MACD 强化趋势信号
+          'ADX': 0.3, // 趋势强度
+          'RSI': 0.2, // 超买超卖
+          'Ichimoku': 0.1, // 云图确认趋势
+          'WR': 0.0,
+          'TRIX': 0.0,
+          'CCI': 0.0,
+        };
+      case 'sideways': // 市场横盘整理
+        return {
+          'RSI': 0.3, // RSI 重要
+          'WR': 0.3, // 威廉指标
+          'CCI': 0.2, // CCI 捕捉波动
+          'Ichimoku': 0.1, // 云图辅助信号
+          'MACD': 0.1, // 次要
+          'ADX': 0.0, // 趋势信号不重要
+          'TRIX': 0.0, // 辅助
+        };
+      case 'volatile': // 市场波动较大
+        return {
+          'RSI': 0.25, // RSI 超买超卖
+          'WR': 0.25, // 威廉指标
+          'CCI': 0.2, // CCI 波动信号
+          'TRIX': 0.2, // TRIX 平滑信号
+          'Ichimoku': 0.1, // 云图
+          'MACD': 0.0, // 趋势指标不重要
+          'ADX': 0.0,
+        };
+      case 'weakTrendingUp': // 市场缓慢上升
+        return {
+          'Ichimoku': 0.3, // 云图较为重要
+          'MACD': 0.25,
+          'ADX': 0.2,
+          'RSI': 0.15,
+          'WR': 0.05,
+          'TRIX': 0.05,
+          'CCI': 0.0,
+        };
+      case 'weakTrendingDown': // 市场缓慢下降
+        return {
+          'Ichimoku': 0.3, // 云图较为重要
+          'MACD': 0.25,
+          'ADX': 0.2,
+          'RSI': 0.15,
+          'WR': 0.05,
+          'TRIX': 0.05,
+          'CCI': 0.0,
+        };
+      default: // 默认情况
+        return {
+          'MACD': 0.2,
+          'RSI': 0.2,
+          'Ichimoku': 0.2,
+          'ADX': 0.2,
+          'WR': 0.1,
+          'TRIX': 0.05,
+          'CCI': 0.05,
+        };
     }
   }
 
-  //修改买卖点
+  static double _calculateSignal(String indicator, Map<String, double> params) {
+    switch (indicator) {
+      case 'MACD':
+        // 使用动态缩放，确保信号在 [-1, 1] 范围内
+        double dif = params['DIF'] ?? 0.0;
+        double dea = params['DEA'] ?? 0.0;
+        double hist = dif - dea; // 柱状图信号
+        return hist / (hist.abs() + 1.0); // 动态缩放信号值
+
+      case 'RSI':
+        // RSI 信号基于超买（>70）和超卖（<30）区域，缩放至 [-1, 1]
+        double rsi = params['RSI'] ?? 50.0;
+        if (rsi > 70) {
+          return (rsi - 70) / 30.0; // 超买区 [0, 1]
+        } else if (rsi < 30) {
+          return (rsi - 30) / 30.0; // 超卖区 [-1, 0]
+        } else {
+          return 0.0; // 中性信号
+        }
+
+      case 'ADX':
+        // ADX 趋势强度信号，动态缩放至 [-1, 1]
+        double adx = params['ADX'] ?? 0.0;
+        return (adx - 25) / (adx.abs() + 25.0); // 确保信号平滑
+
+      case 'Ichimoku':
+        // Ichimoku 云图信号，通过价格与 SpanA/SpanB 的关系判断趋势
+        double price = params['price'] ?? 0.0;
+        double spanA = params['SpanA'] ?? 0.0;
+        double spanB = params['SpanB'] ?? 0.0;
+        double midPoint = (spanA + spanB) / 2.0;
+        if (price > spanA && price > spanB) {
+          return 0.9; // 在云区上方（强势看涨）
+        } else if (price < spanA && price < spanB) {
+          return -0.9; // 在云区下方（强势看跌）
+        } else {
+          // 在云区内，根据价格距离中心线的线性评分
+          return (price - midPoint) /
+              (spanA - spanB).abs().clamp(0.1, double.infinity);
+        }
+
+      case 'WR': // 威廉指标
+        // WR 基于超买（<20）和超卖（>80）区域，线性缩放至 [-1, 1]
+        double wr = params['WR'] ?? 50.0;
+        if (wr < 20) {
+          return (20 - wr) / 20.0; // 超买区 [0, 1]
+        } else if (wr > 80) {
+          return (wr - 80) / 20.0; // 超卖区 [-1, 0]
+        } else {
+          return 0.0; // 中性信号
+        }
+
+      case 'TRIX':
+        // TRIX 动量指标，基于信号差值动态缩放
+        double trix = params['TRIX'] ?? 0.0;
+        double signal = params['Signal'] ?? 0.0;
+        double diff = trix - signal;
+        return diff / (signal.abs() + 0.1); // 动态缩放避免除零
+
+      case 'CCI':
+        // CCI 基于 [-100, 100] 范围，动态缩放至 [-1, 1]
+        double cci = params['CCI'] ?? 0.0;
+        if (cci > 100) {
+          return (cci - 100) / 200.0; // 强势上涨 [0, 1]
+        } else if (cci < -100) {
+          return (cci + 100) / 200.0; // 强势下跌 [-1, 0]
+        } else {
+          return cci / 100.0; // 中性 [-1.0, 1.0]
+        }
+
+      default:
+        // 未知指标，打印日志并返回中性信号
+        // print('==============================Unknown indicator: $indicator');
+        return 0.0; // 默认中性信号
+    }
+  }
+
+  /// 获取当前实体的指标参数
+  static Map<String, double> _getParamsForIndicator(
+      KLineEntity entity, String indicator) {
+    switch (indicator) {
+      case 'MACD':
+        return {'DIF': entity.dif ?? 0, 'DEA': entity.dea ?? 0};
+      case 'RSI':
+        return {'RSI': entity.rsi ?? 0};
+      case 'ADX':
+        return {'ADX': entity.adx ?? 0};
+      case 'Ichimoku':
+        return {
+          'price': entity.close,
+          'SpanA': entity.ichimokuSpanA ?? 0,
+          'SpanB': entity.ichimokuSpanB ?? 0
+        };
+      case 'WR':
+        return {'WR': entity.wpr ?? 0};
+      case 'TRIX':
+        return {'TRIX': entity.trix ?? 0, 'Signal': entity.trixSignal ?? 0};
+      case 'CCI':
+        return {'CCI': entity.cci ?? 0};
+      default:
+        // print("===================this indicator didn't get value : " +
+        //     indicator);
+        return {};
+    }
+  }
+
   static void _calculateDirectionalSignal(
       KLineEntity lastPoint, KLineEntity curPoint, List<KLineEntity> datas) {
     if (lastPoint.k == null ||
