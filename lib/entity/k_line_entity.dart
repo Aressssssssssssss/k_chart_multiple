@@ -26,27 +26,27 @@ class KLineEntity extends KEntity {
   });
 
   KLineEntity.fromJson(Map<String, dynamic> json) {
-    open = json['open']?.toDouble() ?? 0;
-    high = json['high']?.toDouble() ?? 0;
-    low = json['low']?.toDouble() ?? 0;
-    close = json['close']?.toDouble() ?? 0;
-    vol = json['vol']?.toDouble() ?? 0;
-    amount = json['amount']?.toDouble();
-    int? tempTime = json['time']?.toInt();
+    open = double.tryParse(json['open'] ?? "0") ?? 0;
+    high = double.tryParse(json['high'] ?? "0") ?? 0;
+    low = double.tryParse(json['low'] ?? "0") ?? 0;
+    close = double.tryParse(json['close'] ?? "0") ?? 0;
+    vol = double.tryParse(json['vol'] ?? "0") ?? 0;
+    amount = double.tryParse(json['amount'] ?? "0") ?? 0;
+    int? tempTime = int.tryParse(json['time'] ?? "0") ?? 0;
     //兼容火币数据
     if (tempTime == null) {
-      tempTime = json['id']?.toInt() ?? 0;
+      tempTime = int.tryParse(json['id'] ?? "0") ?? 0;
       tempTime = tempTime! * 1000;
     }
     time = tempTime;
-    ratio = json['ratio']?.toDouble();
-    change = json['change']?.toDouble();
+    ratio = double.tryParse(json['ratio'] ?? "0") ?? 0;
+    change = double.tryParse(json['change'] ?? "0") ?? 0;
 
     // 如果后端也返回了 'pdi', 'mdi', 'adx', 'adxr' 字段:
-    pdi = json['pdi']?.toDouble();
-    mdi = json['mdi']?.toDouble();
-    adx = json['adx']?.toDouble();
-    adxr = json['adxr']?.toDouble();
+    pdi = double.tryParse(json['pdi'] ?? "0") ?? 0;
+    mdi = double.tryParse(json['mdi'] ?? "0") ?? 0;
+    adx = double.tryParse(json['adx'] ?? "0") ?? 0;
+    adxr = double.tryParse(json['adxr'] ?? "0") ?? 0;
   }
 
   Map<String, dynamic> toJson() {
