@@ -39,6 +39,24 @@ enum SecondaryState {
   NONE
 }
 
+extension SecondaryStateJson on SecondaryState {
+  /// 将枚举值转换为 JSON（String）表示
+  String toJson() {
+    // 直接返回枚举名
+    return toString().split('.').last;
+  }
+
+  /// 从 JSON（String）解析出对应的枚举值
+  static SecondaryState fromJson(String json) {
+    // 尝试匹配所有 values
+    return SecondaryState.values.firstWhere(
+      (e) => e.toJson() == json,
+      // 如果没有匹配，则返回 NONE 或者抛出异常
+      orElse: () => SecondaryState.NONE,
+    );
+  }
+}
+
 class TimeFormat {
   static const List<String> YEAR_MONTH_DAY = [yyyy, '-', mm, '-', dd];
   static const List<String> YEAR_MONTH_DAY_WITH_HOUR = [
