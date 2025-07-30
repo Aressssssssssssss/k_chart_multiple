@@ -7,6 +7,24 @@ import 'package:k_chart_multiple/flutter_k_chart.dart';
 
 enum MainState { MA, BOLL, NONE }
 
+extension MainStateJson on MainState {
+  /// 将枚举值转换为 JSON（String）表示
+  String toJson() {
+    // 直接返回枚举名
+    return toString().split('.').last;
+  }
+
+  /// 从 JSON（String）解析出对应的枚举值
+  static MainState fromJson(String json) {
+    // 尝试匹配所有 values
+    return MainState.values.firstWhere(
+      (e) => e.toJson() == json,
+      // 如果没有匹配，则返回 NONE 或者抛出异常
+      orElse: () => MainState.NONE,
+    );
+  }
+}
+
 enum SecondaryState {
   MACD,
   KDJ,
