@@ -2,6 +2,10 @@ import 'dart:async' show StreamSink;
 
 import 'package:flutter/material.dart';
 import '../flutter_k_chart.dart';
+import '../provider/boll_signal_provider.dart';
+import '../provider/kdj_signal_provider.dart';
+import '../provider/ma_cross_signal_provider.dart';
+import '../provider/signal_provider.dart';
 
 class TrendLine {
   final Offset p1;
@@ -46,43 +50,74 @@ class ChartPainter extends BaseChartPainter {
   final double? mainHeight; // 新增参数：主图高度
   final double? secondaryHeight; // 新增参数：次图高度
 
-  ChartPainter(this.chartStyle, this.chartColors,
-      {required this.lines, //For TrendLine
-      required this.isTrendLine, //For TrendLine
-      required this.selectY, //For TrendLine
-      required datas,
-      required scaleX,
-      required scrollX,
-      required isLongPass,
-      required selectX,
-      isOnTap,
-      isTapShowInfoDialog,
-      required this.verticalTextAlignment,
-      mainState,
-      volHidden,
-      isShowMainState,
-      required this.secondaryStates,
-      this.sink,
-      this.mainHeight, // 接收主图高度
-      this.secondaryHeight, // 接收次图高度
-      bool isLine = false,
-      this.hideGrid = false,
-      this.showNowPrice = true,
-      this.fixedLength = 2,
-      this.maDayList = const [5, 10, 20]})
-      : super(chartStyle,
-            datas: datas,
-            scaleX: scaleX,
-            scrollX: scrollX,
-            isLongPress: isLongPass,
-            isOnTap: isOnTap,
-            isTapShowInfoDialog: isTapShowInfoDialog,
-            selectX: selectX,
-            mainState: mainState,
-            volHidden: volHidden,
-            isShowMainState: isShowMainState,
-            secondaryStates: secondaryStates,
-            isLine: isLine) {
+  /// 副图指标 → Provider
+  final Map<SecondaryState, SecondarySignalProvider> _secProviders;
+
+  /// 主图指标 → Provider
+  final Map<MainState, MainSignalProvider> _mainProviders;
+
+  /// 副图买/卖回调
+  final void Function(double probability)? onGoingUp;
+  final void Function(double probability)? onGoingDown;
+
+  /// 主图买/卖回调
+  final void Function(double probability)? onMainGoingUp;
+  final void Function(double probability)? onMainGoingDown;
+
+  ChartPainter(
+    this.chartStyle,
+    this.chartColors, {
+    required this.lines, //For TrendLine
+    required this.isTrendLine, //For TrendLine
+    required this.selectY, //For TrendLine
+    required datas,
+    required scaleX,
+    required scrollX,
+    required isLongPass,
+    required selectX,
+    isOnTap,
+    isTapShowInfoDialog,
+    required this.verticalTextAlignment,
+    mainState,
+    volHidden,
+    isShowMainState,
+    required this.secondaryStates,
+    this.sink,
+    this.mainHeight, // 接收主图高度
+    this.secondaryHeight, // 接收次图高度
+    bool isLine = false,
+    this.hideGrid = false,
+    this.showNowPrice = true,
+    this.fixedLength = 2,
+    this.maDayList = const [5, 10, 20],
+    this.onGoingUp,
+    this.onGoingDown,
+    this.onMainGoingUp,
+    this.onMainGoingDown,
+  })  : _secProviders = {
+          SecondaryState.KDJ: KdjSignalProvider(),
+          // …… 如有更多副图指标，可一并注册
+        },
+        _mainProviders = {
+          MainState.MA: MaCrossSignalProvider(),
+          MainState.BOLL: BollSignalProvider(),
+          // …… 如有更多主图指标，可一并注册
+        },
+        super(
+          chartStyle,
+          datas: datas,
+          scaleX: scaleX,
+          scrollX: scrollX,
+          isLongPress: isLongPass,
+          isOnTap: isOnTap,
+          isTapShowInfoDialog: isTapShowInfoDialog,
+          selectX: selectX,
+          mainState: mainState,
+          volHidden: volHidden,
+          isShowMainState: isShowMainState,
+          secondaryStates: secondaryStates,
+          isLine: isLine,
+        ) {
     selectPointPaint = Paint()
       ..isAntiAlias = true
       ..strokeWidth = 0.5
@@ -278,6 +313,46 @@ class ChartPainter extends BaseChartPainter {
         // print('[drawChart] Renderer [$j]: State = ${secondaryStates[j]}, '
         //     'Rect = ${secondaryRenderers[j]?.rect}');
       }
+
+      // ---------- ★ 新增：KDJ 信号触发回调 ----------
+      // if (secondaryStates.contains(SecondaryState.KDJ)) {
+      //   // 只在可视范围最后一个 bar 上触发，避免一次渲染多次调用
+      //   final isLastVisible = (i == mStopIndex);
+      //   if (isLastVisible) {
+      //     // 约定：KLineEntity 内部已经填充 buySignal / sellSignal 与 probability
+      //     final prob = curPoint.probability ?? 1.0; // 默认为 1
+      //     if (curPoint.buySignal == true) {
+      //       onGoingUp?.call(prob);
+      //     } else if (curPoint.sellSignal == true) {
+      //       onGoingDown?.call(prob);
+      //     }
+      //   }
+      // }
+      // —— 副图信号回调 ——
+      for (final st in secondaryStates) {
+        final prov = _secProviders[st];
+        if (prov != null && i == mStopIndex) {
+          final prob = curPoint.probability ?? 1.0;
+          if (prov.isBuy(datas!, i)) {
+            onGoingUp?.call(prob);
+          } else if (prov.isSell(datas!, i)) {
+            onGoingDown?.call(prob);
+          }
+        }
+      }
+
+      // —— 主图信号回调 ——
+      if (i == mStopIndex) {
+        final mprov = _mainProviders[mainState];
+        if (mprov != null) {
+          final prob = curPoint.probability ?? 1.0;
+          if (mprov.isBuy(datas!, i)) {
+            onMainGoingUp?.call(prob);
+          } else if (mprov.isSell(datas!, i)) {
+            onMainGoingDown?.call(prob);
+          }
+        }
+      }
     }
 
     if ((isLongPress == true || (isTapShowInfoDialog && isOnTap)) &&
@@ -285,6 +360,7 @@ class ChartPainter extends BaseChartPainter {
       drawCrossLine(canvas, size);
     }
     if (isTrendLine == true) drawTrendLines(canvas, size);
+
     canvas.restore();
   }
 

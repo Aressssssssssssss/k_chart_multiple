@@ -94,6 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    print("Main build");
     return ListView(
       shrinkWrap: true,
       children: <Widget>[
@@ -122,6 +123,20 @@ class _MyHomePageState extends State<MyHomePage> {
               maDayList: [1, 100, 1000],
               mainHeight: 400,
               secondaryHeight: 80,
+              onGoingUp: (probability) {
+                print(
+                    "The price is going up from secondary chart: $probability");
+              },
+              onGoingDown: (probability) {
+                print(
+                    "The price is going down from secondary chart: $probability");
+              },
+              onMainGoingUp: (probability) {
+                print("The price is going up from main chart: $probability");
+              },
+              onMainGoingDown: (probability) {
+                print("The price is going down from main chart: $probability");
+              },
             ),
           ),
           if (showLoading)

@@ -13,6 +13,9 @@ class KLineEntity extends KEntity {
   double? osma; // Moving Average of Oscillator, i.e. MACD(柱) = dif - dea
   double? probability;
 
+  bool? buySignal; // ★ add
+  bool? sellSignal; // ★ add
+
   KLineEntity.fromCustom({
     this.amount,
     required this.open,

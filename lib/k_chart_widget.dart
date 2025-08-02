@@ -125,6 +125,14 @@ class KChartWidget extends StatefulWidget {
   final double? mainHeight; // 新增参数：主图高度
   final double? secondaryHeight; // 新增参数：次图高度
 
+  // 副图回调
+  final void Function(double probability)? onGoingUp;
+  final void Function(double probability)? onGoingDown;
+
+  // 主图回调
+  final void Function(double probability)? onMainGoingUp;
+  final void Function(double probability)? onMainGoingDown;
+
   KChartWidget(
     this.datas,
     this.chartStyle,
@@ -154,6 +162,10 @@ class KChartWidget extends StatefulWidget {
     this.verticalTextAlignment = VerticalTextAlignment.left,
     this.mainHeight,
     this.secondaryHeight,
+    this.onGoingUp, // ★ 仅副图
+    this.onGoingDown, // ★ 仅副图
+    this.onMainGoingUp, // ★ 仅主图
+    this.onMainGoingDown, // ★ 仅主图
   });
 
   @override
@@ -236,6 +248,10 @@ class _KChartWidgetState extends State<KChartWidget>
       fixedLength: widget.fixedLength,
       maDayList: widget.maDayList,
       verticalTextAlignment: widget.verticalTextAlignment,
+      onGoingUp: widget.onGoingUp,
+      onGoingDown: widget.onGoingDown,
+      onMainGoingUp: widget.onMainGoingUp,
+      onMainGoingDown: widget.onMainGoingDown,
     );
 
     return LayoutBuilder(
