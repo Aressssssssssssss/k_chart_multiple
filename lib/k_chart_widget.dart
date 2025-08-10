@@ -5,6 +5,8 @@ import 'package:k_chart_multiple/chart_translations.dart';
 import 'package:k_chart_multiple/extension/map_ext.dart';
 import 'package:k_chart_multiple/flutter_k_chart.dart';
 
+import 'entity/up_prob_report.dart';
+
 enum MainState { MA, BOLL, NONE }
 
 extension MainStateJson on MainState {
@@ -133,6 +135,8 @@ class KChartWidget extends StatefulWidget {
   final void Function(double probability)? onMainGoingUp;
   final void Function(double probability)? onMainGoingDown;
 
+  final void Function(UpProbReport report)? onUpProbs;
+
   KChartWidget(
     this.datas,
     this.chartStyle,
@@ -166,6 +170,7 @@ class KChartWidget extends StatefulWidget {
     this.onGoingDown, // ★ 仅副图
     this.onMainGoingUp, // ★ 仅主图
     this.onMainGoingDown, // ★ 仅主图
+    this.onUpProbs,
   });
 
   @override
@@ -252,6 +257,7 @@ class _KChartWidgetState extends State<KChartWidget>
       onGoingDown: widget.onGoingDown,
       onMainGoingUp: widget.onMainGoingUp,
       onMainGoingDown: widget.onMainGoingDown,
+      onUpProbs: widget.onUpProbs,
     );
 
     return LayoutBuilder(
