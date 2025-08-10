@@ -20,4 +20,14 @@ class BollSignalProvider implements MainSignalProvider {
     final curDn = cur.dn ?? -double.infinity;
     return prev.close >= lastDn && cur.close < curDn;
   }
+
+  @override
+  double? upProb(List<KLineEntity> all, int i) {
+    final c = all[i];
+    final up = c.up, dn = c.dn;
+    if (up == null || dn == null) return null;
+    final range = up - dn;
+    if (range.abs() <= 1e-12) return null;
+    return ((c.close - dn) / range).clamp(0.0, 1.0);
+  }
 }

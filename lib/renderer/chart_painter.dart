@@ -1,10 +1,12 @@
 import 'dart:async' show StreamSink;
 
 import 'package:flutter/material.dart';
+import '../entity/up_prob_report.dart';
 import '../flutter_k_chart.dart';
 import '../provider/boll_signal_provider.dart';
 import '../provider/kdj_signal_provider.dart';
 import '../provider/ma_cross_signal_provider.dart';
+import '../provider/rsi_signal_provider.dart';
 import '../provider/signal_provider.dart';
 
 class TrendLine {
@@ -56,6 +58,9 @@ class ChartPainter extends BaseChartPainter {
   /// 主图指标 → Provider
   final Map<MainState, MainSignalProvider> _mainProviders;
 
+  final void Function(UpProbReport report)? onUpProbs; // ★ 新增回调
+  UpProbReport? _lastReport; // ★ 缓存上次上送
+
   /// 副图买/卖回调
   final void Function(double probability)? onGoingUp;
   final void Function(double probability)? onGoingDown;
@@ -94,8 +99,10 @@ class ChartPainter extends BaseChartPainter {
     this.onGoingDown,
     this.onMainGoingUp,
     this.onMainGoingDown,
+    this.onUpProbs,
   })  : _secProviders = {
           SecondaryState.KDJ: KdjSignalProvider(),
+          SecondaryState.RSI: RsiSignalProvider(),
           // …… 如有更多副图指标，可一并注册
         },
         _mainProviders = {
@@ -342,15 +349,51 @@ class ChartPainter extends BaseChartPainter {
       }
 
       // —— 主图信号回调 ——
-      if (i == mStopIndex) {
+      // if (i == mStopIndex) {
+      //   final mprov = _mainProviders[mainState];
+      //   if (mprov != null) {
+      //     final prob = curPoint.probability ?? 1.0;
+      //     if (mprov.isBuy(datas!, i)) {
+      //       onMainGoingUp?.call(prob);
+      //     } else if (mprov.isSell(datas!, i)) {
+      //       onMainGoingDown?.call(prob);
+      //     }
+      //   }
+      // }
+      // chart_painter.dart -> drawChart(...) 循环内，紧跟在原有信号回调逻辑之后：
+// —— 组装概率并上送 —— 只在最后一根触发，避免一屏里多次
+      if (i == mStopIndex && onUpProbs != null) {
+        // 主图概率
+        double? mainUp;
         final mprov = _mainProviders[mainState];
         if (mprov != null) {
-          final prob = curPoint.probability ?? 1.0;
-          if (mprov.isBuy(datas!, i)) {
-            onMainGoingUp?.call(prob);
-          } else if (mprov.isSell(datas!, i)) {
-            onMainGoingDown?.call(prob);
+          mainUp = mprov.upProb(datas!, i);
+        }
+
+        // 副图概率
+        final Map<SecondaryState, double?> secUps = {};
+        for (final st in secondaryStates) {
+          final prov = _secProviders[st];
+          double? p;
+          if (prov != null) {
+            p = prov.upProb(datas!, i);
+          } else {
+            p = null; // 没有 provider 就不上送
           }
+          secUps[st] = p;
+        }
+
+        final report = UpProbReport(
+          index: i,
+          time: curPoint.time,
+          mainUp: mainUp,
+          secondaryUps: secUps,
+        );
+
+        // 去抖：只有变了才上送
+        if (!report.almostEquals(_lastReport ?? report)) {
+          _lastReport = report;
+          onUpProbs?.call(report);
         }
       }
     }
