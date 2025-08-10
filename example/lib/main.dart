@@ -123,6 +123,9 @@ class _MyHomePageState extends State<MyHomePage> {
               maDayList: [1, 100, 1000],
               mainHeight: 400,
               secondaryHeight: 80,
+              onUpProbs: (report) {
+                print("The comprehensive possibility is $report");
+              },
               onGoingUp: (probability) {
                 print(
                     "The price is going up from secondary chart: $probability");

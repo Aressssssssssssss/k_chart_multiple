@@ -391,7 +391,7 @@ class ChartPainter extends BaseChartPainter {
         );
 
         // 去抖：只有变了才上送
-        if (!report.almostEquals(_lastReport ?? report)) {
+        if (_lastReport == null || !report.almostEquals(_lastReport!)) {
           _lastReport = report;
           onUpProbs?.call(report);
         }
