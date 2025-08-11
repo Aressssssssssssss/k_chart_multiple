@@ -5,6 +5,7 @@ import 'package:k_chart_multiple/chart_translations.dart';
 import 'package:k_chart_multiple/extension/map_ext.dart';
 import 'package:k_chart_multiple/flutter_k_chart.dart';
 
+import 'entity/trade_mark.dart';
 import 'entity/up_prob_report.dart';
 
 enum MainState { MA, BOLL, NONE }
@@ -137,6 +138,9 @@ class KChartWidget extends StatefulWidget {
 
   final void Function(UpProbReport report)? onUpProbs;
 
+  final List<TradeMark> tradeMarks;
+  final bool showTradeMarks;
+
   KChartWidget(
     this.datas,
     this.chartStyle,
@@ -171,6 +175,8 @@ class KChartWidget extends StatefulWidget {
     this.onMainGoingUp, // ★ 仅主图
     this.onMainGoingDown, // ★ 仅主图
     this.onUpProbs,
+    this.tradeMarks = const [],
+    this.showTradeMarks = true,
   });
 
   @override
@@ -258,6 +264,8 @@ class _KChartWidgetState extends State<KChartWidget>
       onMainGoingUp: widget.onMainGoingUp,
       onMainGoingDown: widget.onMainGoingDown,
       onUpProbs: widget.onUpProbs,
+      tradeMarks: widget.tradeMarks,
+      showTradeMarks: widget.showTradeMarks,
     );
 
     return LayoutBuilder(

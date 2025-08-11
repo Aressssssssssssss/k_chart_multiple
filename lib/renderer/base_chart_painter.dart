@@ -4,6 +4,8 @@ import 'package:flutter/material.dart'
     show Color, TextStyle, Rect, Canvas, Size, CustomPainter;
 import 'package:k_chart_multiple/flutter_k_chart.dart';
 
+import '../entity/trade_mark.dart';
+
 export 'package:flutter/material.dart'
     show Color, required, TextStyle, Rect, Canvas, Size, CustomPainter;
 
@@ -48,6 +50,9 @@ abstract class BaseChartPainter extends CustomPainter {
   late double mPointWidth;
   List<String> mFormats = [yyyy, '-', mm, '-', dd, ' ', HH, ':', nn]; //格式化时间
 
+  List<TradeMark> tradeMarks;
+  bool showTradeMarks;
+
   BaseChartPainter(
     this.chartStyle, {
     this.datas,
@@ -64,6 +69,9 @@ abstract class BaseChartPainter extends CustomPainter {
     this.secondaryStates = const [SecondaryState.MACD], // 初始化为默认值
 
     this.isLine = false,
+    // 新增两个可选参数（给旧代码默认值不破坏）
+    this.tradeMarks = const [],
+    this.showTradeMarks = true,
   }) {
     mItemCount = datas?.length ?? 0;
     mPointWidth = this.chartStyle.pointWidth;
@@ -83,6 +91,10 @@ abstract class BaseChartPainter extends CustomPainter {
       mSecondaryMinMap[st] = double.infinity;
     }
     initFormats();
+  }
+
+  void setTradeMarks(List<TradeMark> marks) {
+    tradeMarks = marks;
   }
 
   void initFormats() {

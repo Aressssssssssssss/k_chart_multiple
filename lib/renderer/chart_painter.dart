@@ -1,6 +1,7 @@
 import 'dart:async' show StreamSink;
 
 import 'package:flutter/material.dart';
+import '../entity/trade_mark.dart';
 import '../entity/up_prob_report.dart';
 import '../flutter_k_chart.dart';
 import '../provider/adl_signal_provider.dart';
@@ -95,6 +96,9 @@ class ChartPainter extends BaseChartPainter {
   final void Function(double probability)? onMainGoingUp;
   final void Function(double probability)? onMainGoingDown;
 
+  final List<TradeMark> tradeMarks;
+  final bool showTradeMarks;
+
   ChartPainter(
     this.chartStyle,
     this.chartColors, {
@@ -126,6 +130,8 @@ class ChartPainter extends BaseChartPainter {
     this.onMainGoingUp,
     this.onMainGoingDown,
     this.onUpProbs,
+    this.tradeMarks = const [],
+    this.showTradeMarks = true,
   })  : _secProviders = {
           SecondaryState.KDJ: const KdjSignalProvider(),
           SecondaryState.MACD: const MacdSignalProvider(),
@@ -375,20 +381,6 @@ class ChartPainter extends BaseChartPainter {
         //     'Rect = ${secondaryRenderers[j]?.rect}');
       }
 
-      // ---------- ★ 新增：KDJ 信号触发回调 ----------
-      // if (secondaryStates.contains(SecondaryState.KDJ)) {
-      //   // 只在可视范围最后一个 bar 上触发，避免一次渲染多次调用
-      //   final isLastVisible = (i == mStopIndex);
-      //   if (isLastVisible) {
-      //     // 约定：KLineEntity 内部已经填充 buySignal / sellSignal 与 probability
-      //     final prob = curPoint.probability ?? 1.0; // 默认为 1
-      //     if (curPoint.buySignal == true) {
-      //       onGoingUp?.call(prob);
-      //     } else if (curPoint.sellSignal == true) {
-      //       onGoingDown?.call(prob);
-      //     }
-      //   }
-      // }
       // —— 副图信号回调 ——
       for (final st in secondaryStates) {
         final prov = _secProviders[st];
@@ -403,17 +395,6 @@ class ChartPainter extends BaseChartPainter {
       }
 
       // —— 主图信号回调 ——
-      // if (i == mStopIndex) {
-      //   final mprov = _mainProviders[mainState];
-      //   if (mprov != null) {
-      //     final prob = curPoint.probability ?? 1.0;
-      //     if (mprov.isBuy(datas!, i)) {
-      //       onMainGoingUp?.call(prob);
-      //     } else if (mprov.isSell(datas!, i)) {
-      //       onMainGoingDown?.call(prob);
-      //     }
-      //   }
-      // }
       // chart_painter.dart -> drawChart(...) 循环内，紧跟在原有信号回调逻辑之后：
 // —— 组装概率并上送 —— 只在最后一根触发，避免一屏里多次
       if (i == mStopIndex && onUpProbs != null) {
@@ -458,7 +439,118 @@ class ChartPainter extends BaseChartPainter {
     }
     if (isTrendLine == true) drawTrendLines(canvas, size);
 
+    // —— 在完成所有主图/副图绘制后，画交易标注 —— //
+    if (showTradeMarks && tradeMarks.isNotEmpty) {
+      _drawTradeMarks(canvas);
+    }
+
     canvas.restore();
+  }
+
+  void _drawTradeMarks(Canvas canvas) {
+    // 当前坐标系已被：translate(mTranslateX*scaleX, 0) & scale(scaleX,1) 处理过
+    // 因此只需用 getX(index) / getMainY(price) 即可
+    final double baseSize = 6.0;
+    for (final m in tradeMarks) {
+      if (m.index < mStartIndex || m.index > mStopIndex) continue;
+
+      final double x = getX(m.index);
+      final double y = getMainY(m.price);
+
+      // 图形大小保持相对像素稳定（随缩放衰减）
+      final double r = (baseSize / scaleX).clamp(3.0, 10.0);
+
+      // 颜色&形状
+      Color color;
+      switch (m.action) {
+        case TradeAction.entry:
+          color = Colors.blue;
+          break;
+        case TradeAction.tp:
+          color = Colors.green;
+          break;
+        case TradeAction.exitWin:
+          color = Colors.green.shade700;
+          break;
+        case TradeAction.exitLoss:
+          color = Colors.red;
+          break;
+        case TradeAction.timeStop:
+          color = Colors.orange;
+          break;
+        case TradeAction.trailStop:
+          color = Colors.purple;
+          break;
+      }
+      if (m.color != null) color = m.color!;
+
+      final paintFill = Paint()
+        ..isAntiAlias = true
+        ..style = PaintingStyle.fill
+        ..color = color;
+
+      final paintStroke = Paint()
+        ..isAntiAlias = true
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0 / scaleX
+        ..color = Colors.white;
+
+      // 不同action画不同形状：入场=圆点；止盈=上三角；止损=下方方；时间止损=菱形；跟踪止损=空心圆
+      Path path = Path();
+      switch (m.action) {
+        case TradeAction.entry:
+          canvas.drawCircle(Offset(x, y), r, paintFill);
+          canvas.drawCircle(Offset(x, y), r, paintStroke);
+          break;
+        case TradeAction.tp:
+          path
+            ..moveTo(x, y - r)
+            ..lineTo(x - r, y + r)
+            ..lineTo(x + r, y + r)
+            ..close();
+          canvas.drawPath(path, paintFill);
+          canvas.drawPath(path, paintStroke);
+          break;
+        case TradeAction.exitWin:
+          canvas.drawRect(
+              Rect.fromCenter(
+                  center: Offset(x, y), width: 2 * r, height: 2 * r),
+              paintFill);
+          canvas.drawRect(
+              Rect.fromCenter(
+                  center: Offset(x, y), width: 2 * r, height: 2 * r),
+              paintStroke);
+          break;
+        case TradeAction.exitLoss:
+          path
+            ..moveTo(x, y + r)
+            ..lineTo(x - r, y - r)
+            ..lineTo(x + r, y - r)
+            ..close();
+          canvas.drawPath(path, paintFill);
+          canvas.drawPath(path, paintStroke);
+          break;
+        case TradeAction.timeStop:
+          path
+            ..moveTo(x, y - r)
+            ..lineTo(x + r, y)
+            ..lineTo(x, y + r)
+            ..lineTo(x - r, y)
+            ..close();
+          canvas.drawPath(path, paintFill);
+          canvas.drawPath(path, paintStroke);
+          break;
+        case TradeAction.trailStop:
+          // 空心圆
+          canvas.drawCircle(Offset(x, y), r, paintStroke..color = color);
+          break;
+      }
+
+      if (m.label != null && m.label!.isNotEmpty) {
+        final tp = getTextPainter(m.label!, color);
+        tp.paint(canvas, Offset(x + 2.5 * r, y - tp.height / 2));
+      }
+    }
   }
 
   @override
