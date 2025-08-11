@@ -1,28 +1,29 @@
-// 新增 rsi_signal_provider.dart
+// provider/rsi_signal_provider.dart
 import '../entity/k_line_entity.dart';
 import 'signal_provider.dart';
 
 class RsiSignalProvider implements SecondarySignalProvider {
+  final double center, oversold, overbought;
+  const RsiSignalProvider(
+      {this.center = 50, this.oversold = 30, this.overbought = 70});
+
   @override
-  bool isBuy(List<KLineEntity> all, int i) {
-    if (i < 1) return false;
-    final p = all[i - 1].rsi, c = all[i].rsi;
-    if (p == null || c == null) return false;
-    return p <= 50 && c > 50; // 穿越50
+  bool isBuy(List<KLineEntity> a, int i) {
+    if (i < 1 || !isF(a[i - 1].rsi) || !isF(a[i].rsi)) return false;
+    final p = a[i - 1].rsi!, c = a[i].rsi!;
+    return (p <= oversold && c > oversold) || (p <= center && c > center);
   }
 
   @override
-  bool isSell(List<KLineEntity> all, int i) {
-    if (i < 1) return false;
-    final p = all[i - 1].rsi, c = all[i].rsi;
-    if (p == null || c == null) return false;
-    return p >= 50 && c < 50;
+  bool isSell(List<KLineEntity> a, int i) {
+    if (i < 1 || !isF(a[i - 1].rsi) || !isF(a[i].rsi)) return false;
+    final p = a[i - 1].rsi!, c = a[i].rsi!;
+    return (p >= overbought && c < overbought) || (p >= center && c < center);
   }
 
   @override
-  double? upProb(List<KLineEntity> all, int i) {
-    final r = all[i].rsi;
-    if (r == null) return null;
-    return (r / 100).clamp(0.0, 1.0);
+  double upProb(List<KLineEntity> a, int i) {
+    final r = isF(a[i].rsi) ? a[i].rsi! : 50.0;
+    return clamp01((r - 0) / 100);
   }
 }

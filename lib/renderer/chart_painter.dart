@@ -3,11 +3,37 @@ import 'dart:async' show StreamSink;
 import 'package:flutter/material.dart';
 import '../entity/up_prob_report.dart';
 import '../flutter_k_chart.dart';
+import '../provider/adl_signal_provider.dart';
+import '../provider/adx_only_signal_provider.dart';
+import '../provider/aroon_signal_provider.dart';
+import '../provider/atr_signal_provider.dart';
 import '../provider/boll_signal_provider.dart';
+import '../provider/cci_signal_provider.dart';
+import '../provider/dem_signal_provider.dart';
+import '../provider/dmi_signal_provider.dart';
+import '../provider/envelopes_signal_provider.dart';
+import '../provider/hv_signal_provider.dart';
+import '../provider/ichimoku_signal_provider.dart';
 import '../provider/kdj_signal_provider.dart';
 import '../provider/ma_cross_signal_provider.dart';
+import '../provider/macd_signal_provider.dart';
+import '../provider/mfi_signal_provider.dart';
+import '../provider/momentum_signal_provider.dart';
+import '../provider/obv_signal_provider.dart';
+import '../provider/ppo_signal_provider.dart';
 import '../provider/rsi_signal_provider.dart';
+import '../provider/sar_signal_provider.dart';
 import '../provider/signal_provider.dart';
+import '../provider/stddev_signal_provider.dart';
+import '../provider/stoch_signal_provider.dart';
+import '../provider/trix_signal_provider.dart';
+import '../provider/tsi_signal_provider.dart';
+import '../provider/vix_signal_provider.dart';
+import '../provider/volatility_signal_provider.dart';
+import '../provider/vortex_signal_provider.dart';
+import '../provider/vwap_signal_provider.dart';
+import '../provider/wpr_signal_provider.dart';
+import '../provider/wr_signal_provider.dart';
 
 class TrendLine {
   final Offset p1;
@@ -101,8 +127,36 @@ class ChartPainter extends BaseChartPainter {
     this.onMainGoingDown,
     this.onUpProbs,
   })  : _secProviders = {
-          SecondaryState.KDJ: KdjSignalProvider(),
-          SecondaryState.RSI: RsiSignalProvider(),
+          SecondaryState.KDJ: const KdjSignalProvider(),
+          SecondaryState.MACD: const MacdSignalProvider(),
+          SecondaryState.RSI: const RsiSignalProvider(),
+          SecondaryState.WR: const WrSignalProvider(),
+          SecondaryState.WPR: const WprSignalProvider(),
+          SecondaryState.CCI: const CciSignalProvider(),
+          SecondaryState.STOCHASTIC: const StochSignalProvider(),
+          SecondaryState.MOMENTUM: const MomentumSignalProvider(),
+          SecondaryState.MFI: const MfiSignalProvider(),
+          SecondaryState.DEMARKER: const DemSignalProvider(),
+          SecondaryState.STDDEV: const StdDevSignalProvider(),
+          SecondaryState.DMI: const DmiSignalProvider(),
+          SecondaryState.ADX: const AdxOnlySignalProvider(),
+          SecondaryState.AROON: const AroonSignalProvider(),
+          SecondaryState.VORTEX: const VortexSignalProvider(),
+          SecondaryState.SAR: const SarSignalProvider(),
+          SecondaryState.ICHIMOKU: const IchimokuSignalProvider(),
+          SecondaryState.TSI: const TsiSignalProvider(),
+          SecondaryState.PPO: const PpoSignalProvider(),
+          SecondaryState.TRIX: const TrixSignalProvider(),
+          SecondaryState.OBV: const ObvSignalProvider(),
+          SecondaryState.VWAP: const VwapSignalProvider(),
+          SecondaryState.ADL: const AdlSignalProvider(),
+          SecondaryState.ATR: const AtrSignalProvider(),
+          SecondaryState.HV: const HvSignalProvider(),
+          SecondaryState.VIX: const VixSignalProvider(),
+          SecondaryState.VOLATILITY: const VolatilitySignalProvider(),
+          SecondaryState.ENVELOPES: const EnvelopesSignalProvider(),
+          // 若有
+          // SecondaryState.BSSIGNAL: const BsSignalProvider(),
           // …… 如有更多副图指标，可一并注册
         },
         _mainProviders = {

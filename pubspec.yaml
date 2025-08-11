@@ -4,7 +4,7 @@ version: 1.0.0
 homepage: https://github.com/Aressssssssssssss/k_chart_multiple
 
 environment:
-  sdk: ">=2.12.0 <3.0.0"
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -15,3 +15,11 @@ dev_dependencies:
     sdk: flutter
 
 flutter:
+    # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  assets:
+    - assets/
