@@ -13,15 +13,15 @@ class DataUtil {
     calcRSI(dataList);
     calcWR(dataList);
     calcCCI(dataList);
-    _computePPO;
+    _computePPO(dataList);
     _computeTRIX(dataList);
     _computeDMIAdvanced(dataList);
     _computeDMI(dataList);
     _computeTSI(dataList);
     _computeIchimoku(dataList);
-    _computePSAR;
+    _computePSAR(dataList);
     _computeVortex(dataList);
-    _computeATR;
+    _computeATR(dataList);
     _computeHV(dataList);
     _computeVWAP(dataList);
     _computeOBVAdvanced(dataList);
@@ -39,7 +39,6 @@ class DataUtil {
     _computeVolIndicator(dataList);
     _computeAroonAdvanced(dataList);
 
-    // _calculateSignals(dataList);
     _calculateProbabilities(dataList);
   }
 
@@ -56,7 +55,7 @@ class DataUtil {
       double upProbability = 0;
       double totalWeight = 0;
 
-      String marketCondition = _determineMarketCondition(dataList[i]);
+      String marketCondition = _determineMarketCondition(dataList, i);
       final Map<String, double> weightConfig =
           _getIndicatorWeights(marketCondition);
 
@@ -92,7 +91,9 @@ class DataUtil {
 
   /// 改进后的市场状态判断
   /// 动态判断市场状态
-  static String _determineMarketCondition(KLineEntity entity) {
+  static String _determineMarketCondition(List<KLineEntity> data, int index) {
+    final KLineEntity entity = data[index];
+    final KLineEntity? previous = index > 0 ? data[index - 1] : null;
     // 默认阈值（可以根据需求调整）
     const double adxTrendThreshold = 25.0; // ADX 趋势强度阈值
     const double macdTrendThreshold = 0.02; // MACD 信号阈值（DIF 和 DEA 差值）
@@ -101,18 +102,24 @@ class DataUtil {
     const double weakTrendThreshold = 0.01; // 弱趋势阈值（价格变动比例）
 
     // 提取指标数据
-    double adx = entity.adx ?? 0.0;
-    double dif = entity.dif ?? 0.0;
-    double dea = entity.dea ?? 0.0;
-    double closePrice = entity.close ?? 0.0;
-    double prevClosePrice = closePrice;
-    double atr = entity.atr ?? 0.0;
+    final double adx = entity.adx ?? 0.0;
+    final double dif = entity.dif ?? 0.0;
+    final double dea = entity.dea ?? 0.0;
+    final double closePrice = entity.close;
+    final double prevClosePrice = previous?.close ?? closePrice;
+    final double atr = entity.atr ?? 0.0;
 
     // 计算市场状态指标
     double macdHist = dif - dea; // MACD 柱状图
-    double priceChange =
-        (closePrice - prevClosePrice).abs() / prevClosePrice; // 收盘价变动百分比
-    double volatility = atr / closePrice; // ATR 波动占比
+    double priceChange = 0.0;
+    final double priceBase = prevClosePrice.abs() < 1e-12
+        ? (closePrice.abs() < 1e-12 ? 1 : closePrice)
+        : prevClosePrice;
+    if (priceBase != 0) {
+      priceChange = (closePrice - prevClosePrice).abs() / priceBase.abs();
+    }
+    final double volatility =
+        closePrice.abs() < 1e-12 ? 0.0 : (atr / closePrice.abs());
 
     // 判断市场状态
     if (adx >= adxTrendThreshold) {
@@ -321,52 +328,6 @@ class DataUtil {
         // print("===================this indicator didn't get value : " +
         //     indicator);
         return {};
-    }
-  }
-
-  static void _calculateDirectionalSignal(
-      KLineEntity lastPoint, KLineEntity curPoint, List<KLineEntity> datas) {
-    if (lastPoint.k == null ||
-        lastPoint.d == null ||
-        curPoint.k == null ||
-        curPoint.d == null ||
-        datas.isEmpty ||
-        curPoint.macd == null) {
-      return;
-    }
-    double lastK = lastPoint.k!;
-    double lastD = lastPoint.d!;
-    double curK = curPoint.k!;
-    double curD = curPoint.d!;
-    double priceChangeThreshold = 0.002;
-    double priceChange = (curPoint.close - lastPoint.close) / lastPoint.close;
-    double lastMacd = lastPoint.macd!;
-    double curMacd = curPoint.macd!;
-
-    double smoothLastK = (lastPoint.k! + (lastPoint.k ?? 0 * 2)) / 3;
-    double smoothLastD = (lastPoint.d! + (lastPoint.d ?? 0 * 2)) / 3;
-    double smoothCurK = (curPoint.k! + (curPoint.k ?? 0 * 2)) / 3;
-    double smoothCurD = (curPoint.d! + (curPoint.d ?? 0 * 2)) / 3;
-
-    // 买入信号：KDJ金叉,MACD在零轴之上且向上,成交量放大,价格上涨
-    if (smoothLastK < smoothLastD &&
-        smoothCurK > smoothCurD &&
-        curMacd > 0 &&
-        curPoint.vol > lastPoint.vol &&
-        priceChange >= priceChangeThreshold) {
-      curPoint.buySignal = true;
-    } else {
-      curPoint.buySignal = false;
-    }
-    // 卖出信号：KDJ死叉，MACD在零轴以下,价格下跌且成交量放大
-    if (smoothLastK > smoothLastD &&
-        smoothCurK < smoothCurD &&
-        curMacd < 0 &&
-        curPoint.vol > lastPoint.vol &&
-        priceChange <= -priceChangeThreshold) {
-      curPoint.sellSignal = true;
-    } else {
-      curPoint.sellSignal = false;
     }
   }
 
@@ -1084,14 +1045,12 @@ class DataUtil {
   /// [tenkanPeriod]  默认9
   /// [kijunPeriod]   默认26
   /// [senkouBPeriod] 默认52
-  /// [shift]         通常26，用于云图前移/后移，但在此仅计算值，不做实际数组越界写入
   /// [smoothMethod]  平滑方法: 'wilder', 'ema', 'double', 'none'
   static void _computeIchimoku(
     List<KLineEntity> data, {
     int tenkanPeriod = 9,
     int kijunPeriod = 26,
     int senkouBPeriod = 52,
-    int shift = 26,
     String smoothMethod = 'ema',
   }) {
     final length = data.length;
@@ -2076,8 +2035,6 @@ class DataUtil {
     List<double> negFlowArr = List.filled(length, 0);
 
     // 计算第0条 typicalPrice & rawFlow
-    double tp0 = (data[0].high + data[0].low + data[0].close) / 3.0;
-    double rmf0 = tp0 * data[0].vol;
     // 无前一条可比 => posFlow=0, negFlow=0
     posFlowArr[0] = 0;
     negFlowArr[0] = 0;

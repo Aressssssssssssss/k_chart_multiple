@@ -1,7 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart'
-    show Color, TextStyle, Rect, Canvas, Size, CustomPainter;
 import 'package:k_chart_multiple/flutter_k_chart.dart';
 
 import '../entity/trade_mark.dart';

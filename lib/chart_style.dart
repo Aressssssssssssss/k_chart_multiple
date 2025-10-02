@@ -95,7 +95,8 @@ class ChartColors {
   Color ichimokuChikouColor = Colors.orange;
 
   // 云层填充色
-  Color ichimokuCloudColor = Colors.green; // 纯色, 实际绘制时会 .withOpacity(0.2)
+  Color ichimokuCloudColor =
+      Colors.green; // 纯色, 实际绘制时会调用 .withValues(alpha: 0.2)
 
   Color sarColor = Colors.pink;
 

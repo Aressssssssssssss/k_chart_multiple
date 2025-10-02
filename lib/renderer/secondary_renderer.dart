@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../flutter_k_chart.dart';
@@ -75,7 +73,7 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
 
       Paint cloudPaint = Paint()
         ..isAntiAlias = true
-        ..color = chartColors.ichimokuCloudColor.withOpacity(0.2)
+        ..color = chartColors.ichimokuCloudColor.withValues(alpha: 0.2)
         ..style = PaintingStyle.fill;
 
       // 填充云层

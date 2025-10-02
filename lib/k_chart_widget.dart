@@ -199,8 +199,6 @@ class _KChartWidgetState extends State<KChartWidget>
   bool waitingForOtherPairofCords = false;
   bool enableCordRecord = false;
 
-  late List<SecondaryState> secondaryStates;
-
   double getMinScrollX() {
     return mScaleX;
   }
@@ -211,7 +209,6 @@ class _KChartWidgetState extends State<KChartWidget>
   @override
   void initState() {
     super.initState();
-    secondaryStates = widget.secondaryStates; // 从 widget 获取 secondaryStates
     mInfoWindowStream = StreamController<InfoWindowEntity?>();
   }
 
@@ -276,11 +273,9 @@ class _KChartWidgetState extends State<KChartWidget>
         return GestureDetector(
           onTapUp: (details) {
             if (widget.onSecondaryTap != null) {
-              for (int i = 0; i < secondaryStates.length; i++) {
-                if (_painter.isInSecondaryRect(details.localPosition)) {
-                  widget.onSecondaryTap!(i);
-                  break;
-                }
+              final index = _painter.secondaryIndexAt(details.localPosition);
+              if (index != null) {
+                widget.onSecondaryTap!(index);
               }
             }
 
@@ -457,7 +452,10 @@ class _KChartWidgetState extends State<KChartWidget>
     _controller!.forward();
   }
 
-  void notifyChanged() => setState(() {});
+  void notifyChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
 
   late List<String> infos;
 
@@ -502,6 +500,7 @@ class _KChartWidgetState extends State<KChartWidget>
               itemExtent: 14.0,
               shrinkWrap: true,
               itemBuilder: (context, index) {
+                // ignore: deprecated_member_use_from_same_package
                 final translations = widget.isChinese
                     ? kChartTranslations['zh_CN']!
                     : widget.translations.of(context);

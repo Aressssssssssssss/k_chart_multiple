@@ -49,14 +49,6 @@ typedef _Pick = double? Function(KLineEntity e);
   return (min: mn, max: mx);
 }
 
-/// 单调性（斜率）加分：当前值相对上一根的提升/下降映射到 0.5±delta
-double _trendBoost(double? prev, double? cur,
-    {double maxAbs = 1.0, double w = .15}) {
-  if (!isF(prev) || !isF(cur) || maxAbs <= 0) return 0.0;
-  final d = ((cur! - prev!) / maxAbs).clamp(-1.0, 1.0);
-  return w * d; // [-w, +w]
-}
-
 /// 价差归一： (close - ref) / (k * close)，k=0.5%默认
 double priceAboveToProb(KLineEntity c, double? ref, {double pct = 0.005}) {
   if (!isF(ref)) return 0.5;

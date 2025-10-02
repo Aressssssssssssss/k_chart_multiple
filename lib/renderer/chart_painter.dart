@@ -905,14 +905,17 @@ class ChartPainter extends BaseChartPainter {
   //   return mSecondaryRect?.contains(point) ?? false;
   // }
 
-  bool isInSecondaryRect(Offset point) {
+  int? secondaryIndexAt(Offset point) {
     for (int i = 0; i < secondaryRenderers.length; i++) {
-      if (secondaryRenderers[i]?.rect.contains(point) ?? false) {
-        return true;
+      final rect = secondaryRenderers[i]?.rect;
+      if (rect != null && rect.contains(point)) {
+        return i;
       }
     }
-    return false;
+    return null;
   }
+
+  bool isInSecondaryRect(Offset point) => secondaryIndexAt(point) != null;
 
   /// 点是否在MainRect中
   bool isInMainRect(Offset point) {
