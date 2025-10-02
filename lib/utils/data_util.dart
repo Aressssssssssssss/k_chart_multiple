@@ -38,6 +38,29 @@ class DataUtil {
     _computeEnvelopes(dataList);
     _computeVolIndicator(dataList);
     _computeAroonAdvanced(dataList);
+    _computeChaikinMoneyFlow(dataList);
+    _computeChaikinOscillator(dataList);
+    _computeKlingerOscillator(dataList);
+    _computeVpt(dataList);
+    _computeForceIndex(dataList);
+    _computeRoc(dataList);
+    _computeUltimateOsc(dataList);
+    _computeConnorsRsi(dataList);
+    _computeStochRsi(dataList);
+    _computeRvi(dataList);
+    _computeDpo(dataList);
+    _computeKama(dataList);
+    _computeHma(dataList);
+    _computeKeltnerChannel(dataList);
+    _computeDonchianChannel(dataList);
+    _computeBollingerBandwidth(dataList);
+    _computeChaikinVolatility(dataList);
+    _computeHvPercentile(dataList);
+    _computeAtrPercentile(dataList);
+    _computeElderRay(dataList);
+    _computeIchimokuSpanDiff(dataList);
+    _computePivotPoints(dataList);
+    _computeGannFan(dataList);
 
     _calculateProbabilities(dataList);
   }
@@ -2282,5 +2305,839 @@ class DataUtil {
         data[i].aroonOsc = osc;
       }
     }
+  }
+
+  static void _computeChaikinMoneyFlow(List<KLineEntity> data,
+      {int period = 20}) {
+    if (data.isEmpty || period <= 0) {
+      for (final e in data) {
+        e.cmf = null;
+      }
+      return;
+    }
+
+    final List<double> mfBuffer = List.filled(period, 0.0);
+    final List<double> volBuffer = List.filled(period, 0.0);
+    double sumMf = 0.0;
+    double sumVol = 0.0;
+    int idx = 0;
+    int filled = 0;
+
+    for (final entity in data) {
+      final double oldMf = mfBuffer[idx];
+      final double oldVol = volBuffer[idx];
+      if (filled >= period) {
+        sumMf -= oldMf;
+        sumVol -= oldVol;
+      } else {
+        filled++;
+      }
+
+      final double range = entity.high - entity.low;
+      double multiplier = 0.0;
+      if (range.abs() > 1e-12) {
+        multiplier =
+            ((entity.close - entity.low) - (entity.high - entity.close)) /
+                range;
+      }
+      final double mfVolume = multiplier * entity.vol;
+
+      mfBuffer[idx] = mfVolume;
+      volBuffer[idx] = entity.vol;
+      sumMf += mfVolume;
+      sumVol += entity.vol;
+
+      idx = (idx + 1) % period;
+
+      if (filled >= period && sumVol.abs() > 1e-12) {
+        entity.cmf = sumMf / sumVol;
+      } else {
+        entity.cmf = null;
+      }
+    }
+  }
+
+  static void _computeChaikinOscillator(List<KLineEntity> data,
+      {int shortPeriod = 3, int longPeriod = 10}) {
+    if (data.isEmpty) return;
+
+    double? emaShort;
+    double? emaLong;
+    final double shortAlpha = 2 / (shortPeriod + 1);
+    final double longAlpha = 2 / (longPeriod + 1);
+
+    for (final entity in data) {
+      final double? adl = entity.adl;
+      if (adl == null) {
+        entity.chaikinOscillator = null;
+        continue;
+      }
+
+      emaShort =
+          emaShort == null ? adl : emaShort + shortAlpha * (adl - emaShort);
+      emaLong = emaLong == null ? adl : emaLong + longAlpha * (adl - emaLong);
+
+      entity.chaikinOscillator = emaShort - emaLong;
+    }
+  }
+
+  static void _computeKlingerOscillator(List<KLineEntity> data,
+      {int shortPeriod = 34, int longPeriod = 55, int signalPeriod = 13}) {
+    if (data.isEmpty) return;
+
+    double? emaShort;
+    double? emaLong;
+    double? signal;
+    final double shortAlpha = 2 / (shortPeriod + 1);
+    final double longAlpha = 2 / (longPeriod + 1);
+    final double signalAlpha = 2 / (signalPeriod + 1);
+
+    for (int i = 0; i < data.length; i++) {
+      final entity = data[i];
+      final double typical = (entity.high + entity.low + entity.close) / 3.0;
+      final double prevTypical = i > 0
+          ? (data[i - 1].high + data[i - 1].low + data[i - 1].close) / 3.0
+          : typical;
+      final double direction = typical >= prevTypical ? 1.0 : -1.0;
+
+      final double range = (entity.high - entity.low).abs();
+      double vfComponent = 0.0;
+      if (range > 1e-12) {
+        vfComponent =
+            ((entity.close - entity.low) - (entity.high - entity.close)) /
+                range;
+      }
+      final double volumeForce = direction * entity.vol * vfComponent;
+
+      emaShort = emaShort == null
+          ? volumeForce
+          : emaShort + shortAlpha * (volumeForce - emaShort);
+      emaLong = emaLong == null
+          ? volumeForce
+          : emaLong + longAlpha * (volumeForce - emaLong);
+
+      final double kvo = emaShort - emaLong;
+      signal = signal == null ? kvo : signal + signalAlpha * (kvo - signal);
+      entity.kvo = kvo;
+      entity.kvoSignal = signal;
+    }
+  }
+
+  static void _computeVpt(List<KLineEntity> data) {
+    if (data.isEmpty) return;
+
+    double cumulative = 0.0;
+    data[0].vpt = 0.0;
+    for (int i = 1; i < data.length; i++) {
+      final prevClose = data[i - 1].close;
+      final double change = prevClose.abs() > 1e-12
+          ? (data[i].close - prevClose) / prevClose
+          : 0.0;
+      cumulative += change * data[i].vol;
+      data[i].vpt = cumulative;
+    }
+  }
+
+  static void _computeForceIndex(List<KLineEntity> data, {int period = 13}) {
+    if (data.length < 2) {
+      for (final e in data) {
+        e.forceIndex = null;
+      }
+      return;
+    }
+
+    final double alpha = 2 / (period + 1);
+    double? ema;
+    data[0].forceIndex = null;
+    for (int i = 1; i < data.length; i++) {
+      final current = data[i];
+      final prev = data[i - 1];
+      final double raw = (current.close - prev.close) * current.vol;
+      ema = ema == null ? raw : ema + alpha * (raw - ema);
+      current.forceIndex = ema;
+    }
+  }
+
+  static void _computeRoc(List<KLineEntity> data,
+      {int period = 12, int signalPeriod = 6}) {
+    if (data.isEmpty || period <= 0) {
+      for (final e in data) {
+        e.roc = null;
+        e.rocSignal = null;
+      }
+      return;
+    }
+
+    final List<double?> rocValues = List.filled(data.length, null);
+    for (int i = period; i < data.length; i++) {
+      final prevClose = data[i - period].close;
+      if (prevClose.abs() > 1e-12) {
+        rocValues[i] = ((data[i].close - prevClose) / prevClose) * 100.0;
+      } else {
+        rocValues[i] = 0.0;
+      }
+    }
+
+    double? ema;
+    final double alpha = 2 / (signalPeriod + 1);
+    for (int i = 0; i < data.length; i++) {
+      final value = rocValues[i];
+      data[i].roc = value;
+      if (value != null) {
+        ema = ema == null ? value : ema + alpha * (value - ema);
+        data[i].rocSignal = ema;
+      } else {
+        data[i].rocSignal = null;
+      }
+    }
+  }
+
+  static void _computeUltimateOsc(List<KLineEntity> data,
+      {int shortPeriod = 7, int midPeriod = 14, int longPeriod = 28}) {
+    if (data.length < 2) {
+      for (final e in data) {
+        e.ultimateOsc = null;
+      }
+      return;
+    }
+
+    final length = data.length;
+    final List<double> bp = List.filled(length, 0.0);
+    final List<double> tr = List.filled(length, 0.0);
+
+    for (int i = 0; i < length; i++) {
+      if (i == 0) {
+        bp[i] = data[i].close - data[i].low;
+        tr[i] = data[i].high - data[i].low;
+      } else {
+        final prevClose = data[i - 1].close;
+        final double minLow = math.min(data[i].low, prevClose);
+        final double maxHigh = math.max(data[i].high, prevClose);
+        bp[i] = data[i].close - minLow;
+        tr[i] = maxHigh - minLow;
+      }
+    }
+
+    double sum(List<double> source, int end, int period) {
+      double total = 0.0;
+      for (int j = 0; j < period; j++) {
+        total += source[end - j];
+      }
+      return total;
+    }
+
+    for (int i = 0; i < length; i++) {
+      if (i < longPeriod - 1) {
+        data[i].ultimateOsc = null;
+        continue;
+      }
+
+      final double shortBp = sum(bp, i, shortPeriod);
+      final double shortTr = sum(tr, i, shortPeriod);
+      final double midBp = sum(bp, i, midPeriod);
+      final double midTr = sum(tr, i, midPeriod);
+      final double longBp = sum(bp, i, longPeriod);
+      final double longTr = sum(tr, i, longPeriod);
+
+      if (shortTr.abs() < 1e-12 ||
+          midTr.abs() < 1e-12 ||
+          longTr.abs() < 1e-12) {
+        data[i].ultimateOsc = null;
+        continue;
+      }
+
+      final double avgShort = shortBp / shortTr;
+      final double avgMid = midBp / midTr;
+      final double avgLong = longBp / longTr;
+
+      data[i].ultimateOsc = 100.0 * (4 * avgShort + 2 * avgMid + avgLong) / 7.0;
+    }
+  }
+
+  static void _computeConnorsRsi(List<KLineEntity> data,
+      {int pricePeriod = 3,
+      int streakPeriod = 2,
+      int percentRankPeriod = 100}) {
+    final length = data.length;
+    if (length == 0) return;
+
+    final List<double> closes = data.map((e) => e.close).toList();
+    final priceRsi = _rsiFromSeries(closes, pricePeriod);
+
+    final List<double> streaks = List.filled(length, 0.0);
+    for (int i = 1; i < length; i++) {
+      if (data[i].close > data[i - 1].close) {
+        streaks[i] = streaks[i - 1] >= 0 ? streaks[i - 1] + 1 : 1;
+      } else if (data[i].close < data[i - 1].close) {
+        streaks[i] = streaks[i - 1] <= 0 ? streaks[i - 1] - 1 : -1;
+      } else {
+        streaks[i] = 0;
+      }
+    }
+    final streakRsi = _rsiFromSeries(streaks, streakPeriod);
+
+    final List<double> changes = List.filled(length, 0.0);
+    for (int i = 1; i < length; i++) {
+      changes[i] = data[i].close - data[i - 1].close;
+    }
+
+    for (int i = 0; i < length; i++) {
+      double? percentRank;
+      if (i >= 1) {
+        int start = i - percentRankPeriod + 1;
+        if (start < 1) start = 1;
+        int count = 0;
+        int below = 0;
+        int equal = 0;
+        for (int j = start; j <= i; j++) {
+          count++;
+          if (changes[j] < changes[i]) {
+            below++;
+          } else if ((changes[j] - changes[i]).abs() < 1e-12) {
+            equal++;
+          }
+        }
+        if (count > 0) {
+          percentRank = ((below + 0.5 * equal) / count) * 100.0;
+        }
+      }
+
+      final double? r1 = priceRsi[i];
+      final double? r2 = streakRsi[i];
+      if (r1 == null || r2 == null || percentRank == null) {
+        data[i].connorsRsi = null;
+      } else {
+        data[i].connorsRsi = (r1 + r2 + percentRank) / 3.0;
+      }
+    }
+  }
+
+  static void _computeStochRsi(List<KLineEntity> data,
+      {int period = 14, int smoothK = 3, int smoothD = 3}) {
+    final length = data.length;
+    if (length == 0) return;
+
+    final List<double?> rsiValues =
+        List<double?>.generate(length, (i) => data[i].rsi);
+    final List<double?> rawValues = List.filled(length, null);
+
+    for (int i = 0; i < length; i++) {
+      final double? rsiValue = rsiValues[i];
+      if (rsiValue == null) {
+        rawValues[i] = null;
+        continue;
+      }
+      int start = i - period + 1;
+      if (start < 0) start = 0;
+      double minR = double.infinity;
+      double maxR = -double.infinity;
+      bool hasData = false;
+      for (int j = start; j <= i; j++) {
+        final double? candidate = rsiValues[j];
+        if (candidate == null) continue;
+        hasData = true;
+        if (candidate < minR) minR = candidate;
+        if (candidate > maxR) maxR = candidate;
+      }
+      if (!hasData || maxR == minR) {
+        rawValues[i] = null;
+        continue;
+      }
+      rawValues[i] = (rsiValue - minR) / (maxR - minR);
+    }
+
+    final List<double?> kValues = List.filled(length, null);
+    for (int i = 0; i < length; i++) {
+      final double? raw = rawValues[i];
+      if (raw == null) {
+        kValues[i] = null;
+        continue;
+      }
+      double sum = 0.0;
+      int count = 0;
+      for (int j = i; j >= 0 && count < smoothK; j--) {
+        final double? candidate = rawValues[j];
+        if (candidate == null) continue;
+        sum += candidate;
+        count++;
+      }
+      if (count == smoothK) {
+        kValues[i] = (sum / smoothK) * 100.0;
+      } else {
+        kValues[i] = null;
+      }
+    }
+
+    for (int i = 0; i < length; i++) {
+      final double? kValue = kValues[i];
+      if (kValue == null) {
+        data[i].stochRsiK = null;
+        data[i].stochRsiD = null;
+        continue;
+      }
+      double sum = 0.0;
+      int count = 0;
+      for (int j = i; j >= 0 && count < smoothD; j--) {
+        final double? candidate = kValues[j];
+        if (candidate == null) continue;
+        sum += candidate;
+        count++;
+      }
+      data[i].stochRsiK = kValue;
+      data[i].stochRsiD = count == smoothD ? sum / smoothD : null;
+    }
+  }
+
+  static void _computeRvi(List<KLineEntity> data) {
+    if (data.length < 4) {
+      for (final e in data) {
+        e.rvi = null;
+        e.rviSignal = null;
+      }
+      return;
+    }
+
+    for (int i = 0; i < data.length; i++) {
+      if (i < 3) {
+        data[i].rvi = null;
+        data[i].rviSignal = null;
+        continue;
+      }
+
+      double numerator = 0.0;
+      double denominator = 0.0;
+      for (int j = 0; j < 4; j++) {
+        final current = data[i - j];
+        final weight = (j == 0 || j == 3) ? 1 : 2;
+        numerator += weight * (current.close - current.open);
+        denominator += weight * (current.high - current.low);
+      }
+      numerator /= 6.0;
+      denominator /= 6.0;
+
+      if (denominator.abs() < 1e-12) {
+        data[i].rvi = null;
+        data[i].rviSignal = null;
+        continue;
+      }
+
+      final double rviValue = numerator / denominator;
+      data[i].rvi = rviValue;
+
+      if (i >= 3) {
+        final values = <double?>[
+          data[i].rvi,
+          data[i - 1].rvi,
+          data[i - 2].rvi,
+          data[i - 3].rvi,
+        ];
+        if (values.every((v) => v != null)) {
+          data[i].rviSignal =
+              (values[0]! + 2 * values[1]! + 2 * values[2]! + values[3]!) / 6.0;
+        } else {
+          data[i].rviSignal = null;
+        }
+      } else {
+        data[i].rviSignal = null;
+      }
+    }
+  }
+
+  static void _computeDpo(List<KLineEntity> data, {int period = 20}) {
+    if (data.isEmpty || period <= 0) {
+      for (final e in data) {
+        e.dpo = null;
+      }
+      return;
+    }
+
+    final List<double> closes = data.map((e) => e.close).toList();
+    double rollingSum = 0.0;
+    for (int i = 0; i < data.length; i++) {
+      rollingSum += closes[i];
+      if (i >= period) {
+        rollingSum -= closes[i - period];
+      }
+      if (i >= period - 1) {
+        final double sma = rollingSum / period;
+        data[i].dpo = closes[i] - sma;
+      } else {
+        data[i].dpo = null;
+      }
+    }
+  }
+
+  static void _computeKama(List<KLineEntity> data,
+      {int erPeriod = 10, int fastPeriod = 2, int slowPeriod = 30}) {
+    final length = data.length;
+    if (length == 0 || erPeriod <= 0) {
+      for (final e in data) {
+        e.kama = null;
+      }
+      return;
+    }
+    if (length < erPeriod) {
+      for (final e in data) {
+        e.kama = null;
+      }
+      return;
+    }
+
+    final List<double> closes = data.map((e) => e.close).toList();
+    double sum = 0.0;
+    for (int i = 0; i < erPeriod; i++) {
+      sum += closes[i];
+    }
+    double kama = sum / erPeriod;
+
+    for (int i = 0; i < length; i++) {
+      if (i < erPeriod) {
+        data[i].kama = null;
+        continue;
+      }
+      final double change = (closes[i] - closes[i - erPeriod]).abs();
+      double volatility = 0.0;
+      for (int j = i - erPeriod + 1; j <= i; j++) {
+        volatility += (closes[j] - closes[j - 1]).abs();
+      }
+      final double er = volatility.abs() > 1e-12 ? change / volatility : 0.0;
+      final double fastSC = 2 / (fastPeriod + 1);
+      final double slowSC = 2 / (slowPeriod + 1);
+      final double smoothing =
+          math.pow(er * (fastSC - slowSC) + slowSC, 2).toDouble();
+      kama = kama + smoothing * (closes[i] - kama);
+      data[i].kama = kama;
+    }
+  }
+
+  static void _computeHma(List<KLineEntity> data, {int period = 21}) {
+    if (data.isEmpty || period <= 0) {
+      for (final e in data) {
+        e.hma = null;
+      }
+      return;
+    }
+
+    final List<double> closes = data.map((e) => e.close).toList();
+    final int halfPeriod = math.max(1, period ~/ 2);
+    final int sqrtPeriod = math.max(1, math.sqrt(period).round());
+
+    final List<double?> wmaHalf = List.filled(data.length, null);
+    final List<double?> wmaFull = List.filled(data.length, null);
+    for (int i = 0; i < data.length; i++) {
+      wmaHalf[i] = _wmaAt(closes, i, halfPeriod);
+      wmaFull[i] = _wmaAt(closes, i, period);
+    }
+
+    final List<double?> diffSeries = List.filled(data.length, null);
+    for (int i = 0; i < data.length; i++) {
+      if (wmaHalf[i] != null && wmaFull[i] != null) {
+        diffSeries[i] = 2 * wmaHalf[i]! - wmaFull[i]!;
+      }
+    }
+
+    for (int i = 0; i < data.length; i++) {
+      data[i].hma = _wmaAtNullable(diffSeries, i, sqrtPeriod);
+    }
+  }
+
+  static void _computeKeltnerChannel(List<KLineEntity> data,
+      {int period = 20, double multiplier = 2}) {
+    if (data.isEmpty) return;
+
+    double? ema;
+    final double alpha = 2 / (period + 1);
+    for (final entity in data) {
+      final double typicalPrice =
+          (entity.high + entity.low + entity.close) / 3.0;
+      ema = ema == null ? typicalPrice : ema + alpha * (typicalPrice - ema);
+      entity.keltnerMiddle = ema;
+      if (entity.atr != null) {
+        entity.keltnerUpper = ema + multiplier * entity.atr!;
+        entity.keltnerLower = ema - multiplier * entity.atr!;
+      } else {
+        entity.keltnerUpper = null;
+        entity.keltnerLower = null;
+      }
+    }
+  }
+
+  static void _computeDonchianChannel(List<KLineEntity> data,
+      {int period = 20}) {
+    if (data.isEmpty || period <= 0) return;
+
+    for (int i = 0; i < data.length; i++) {
+      int start = i - period + 1;
+      if (start < 0) start = 0;
+      double highest = -double.infinity;
+      double lowest = double.infinity;
+      for (int j = start; j <= i; j++) {
+        highest = math.max(highest, data[j].high);
+        lowest = math.min(lowest, data[j].low);
+      }
+      if (i >= period - 1) {
+        data[i].donchianUpper = highest;
+        data[i].donchianLower = lowest;
+        data[i].donchianMiddle = (highest + lowest) / 2.0;
+      } else {
+        data[i].donchianUpper = null;
+        data[i].donchianLower = null;
+        data[i].donchianMiddle = null;
+      }
+    }
+  }
+
+  static void _computeBollingerBandwidth(List<KLineEntity> data) {
+    for (final entity in data) {
+      final up = entity.up;
+      final dn = entity.dn;
+      final mb = entity.mb;
+      if (up != null && dn != null && mb != null && mb.abs() > 1e-12) {
+        entity.bollBandwidth = (up - dn) / mb;
+      } else {
+        entity.bollBandwidth = null;
+      }
+    }
+  }
+
+  static void _computeChaikinVolatility(List<KLineEntity> data,
+      {int emaPeriod = 10, int changePeriod = 10}) {
+    if (data.isEmpty) return;
+
+    final List<double?> emaRange = List.filled(data.length, null);
+    double ema = 0.0;
+    bool hasEma = false;
+    final double alpha = 2 / (emaPeriod + 1);
+    for (int i = 0; i < data.length; i++) {
+      final range = data[i].high - data[i].low;
+      if (!hasEma) {
+        ema = range;
+        hasEma = true;
+      } else {
+        ema = ema + alpha * (range - ema);
+      }
+      emaRange[i] = ema;
+      if (i >= changePeriod) {
+        final prevRange = emaRange[i - changePeriod];
+        if (prevRange != null && prevRange.abs() > 1e-12) {
+          data[i].chaikinVolatility = ((ema - prevRange) / prevRange) * 100.0;
+        } else {
+          data[i].chaikinVolatility = null;
+        }
+      } else {
+        data[i].chaikinVolatility = null;
+      }
+    }
+  }
+
+  static void _computeHvPercentile(List<KLineEntity> data,
+      {int lookback = 63}) {
+    if (data.isEmpty) return;
+
+    for (int i = 0; i < data.length; i++) {
+      final double? current = data[i].hv;
+      if (current == null) {
+        data[i].hvPercentile = null;
+        continue;
+      }
+      int start = i - lookback + 1;
+      if (start < 0) start = 0;
+      int count = 1;
+      int below = 0;
+      int equal = 1;
+      for (int j = start; j < i; j++) {
+        final double? candidate = data[j].hv;
+        if (candidate == null) continue;
+        count++;
+        if (candidate < current) {
+          below++;
+        } else if ((candidate - current).abs() < 1e-12) {
+          equal++;
+        }
+      }
+      data[i].hvPercentile = ((below + 0.5 * equal) / count) * 100.0;
+    }
+  }
+
+  static void _computeAtrPercentile(List<KLineEntity> data,
+      {int lookback = 63}) {
+    if (data.isEmpty) return;
+
+    for (int i = 0; i < data.length; i++) {
+      final double? current = data[i].atr;
+      if (current == null) {
+        data[i].atrPercentile = null;
+        continue;
+      }
+      int start = i - lookback + 1;
+      if (start < 0) start = 0;
+      int count = 1;
+      int below = 0;
+      int equal = 1;
+      for (int j = start; j < i; j++) {
+        final double? candidate = data[j].atr;
+        if (candidate == null) continue;
+        count++;
+        if (candidate < current) {
+          below++;
+        } else if ((candidate - current).abs() < 1e-12) {
+          equal++;
+        }
+      }
+      data[i].atrPercentile = ((below + 0.5 * equal) / count) * 100.0;
+    }
+  }
+
+  static void _computeElderRay(List<KLineEntity> data, {int period = 13}) {
+    if (data.isEmpty) return;
+
+    double? ema;
+    final double alpha = 2 / (period + 1);
+    for (int i = 0; i < data.length; i++) {
+      final entity = data[i];
+      ema = ema == null ? entity.close : ema + alpha * (entity.close - ema);
+      if (i < period - 1) {
+        entity.elderBull = null;
+        entity.elderBear = null;
+      } else {
+        entity.elderBull = entity.high - ema;
+        entity.elderBear = entity.low - ema;
+      }
+    }
+  }
+
+  static void _computeIchimokuSpanDiff(List<KLineEntity> data) {
+    for (final entity in data) {
+      if (entity.ichimokuSpanA != null && entity.ichimokuSpanB != null) {
+        entity.ichimokuSpanDiff = entity.ichimokuSpanA! - entity.ichimokuSpanB!;
+      } else {
+        entity.ichimokuSpanDiff = null;
+      }
+    }
+  }
+
+  static void _computePivotPoints(List<KLineEntity> data) {
+    double? prevHigh;
+    double? prevLow;
+    double? prevClose;
+
+    for (final entity in data) {
+      if (prevHigh != null && prevLow != null && prevClose != null) {
+        final double pivot = (prevHigh + prevLow + prevClose) / 3.0;
+        final double range = prevHigh - prevLow;
+        entity.pivot = pivot;
+        entity.pivotR1 = 2 * pivot - prevLow;
+        entity.pivotS1 = 2 * pivot - prevHigh;
+        entity.pivotR2 = pivot + range;
+        entity.pivotS2 = pivot - range;
+        entity.pivotR3 = prevHigh + 2 * (pivot - prevLow);
+        entity.pivotS3 = prevLow - 2 * (prevHigh - pivot);
+      } else {
+        entity.pivot = null;
+        entity.pivotR1 = null;
+        entity.pivotR2 = null;
+        entity.pivotR3 = null;
+        entity.pivotS1 = null;
+        entity.pivotS2 = null;
+        entity.pivotS3 = null;
+      }
+
+      prevHigh = entity.high;
+      prevLow = entity.low;
+      prevClose = entity.close;
+    }
+  }
+
+  static void _computeGannFan(List<KLineEntity> data, {int lookback = 30}) {
+    if (data.isEmpty) return;
+
+    for (int i = 0; i < data.length; i++) {
+      int start = i - lookback + 1;
+      if (start < 0) start = 0;
+      double highest = -double.infinity;
+      double lowest = double.infinity;
+      for (int j = start; j <= i; j++) {
+        highest = math.max(highest, data[j].high);
+        lowest = math.min(lowest, data[j].low);
+      }
+      final double range = highest - lowest;
+      if (range.abs() < 1e-12) {
+        data[i].gann1x1 = null;
+        data[i].gann1x2 = null;
+        data[i].gann2x1 = null;
+        continue;
+      }
+      final double normalized = (data[i].close - lowest) / range;
+      data[i].gann1x1 = normalized;
+      data[i].gann1x2 = normalized / 2.0;
+      data[i].gann2x1 = (normalized * 2).clamp(-2.0, 2.0);
+    }
+  }
+
+  static List<double?> _rsiFromSeries(List<double> series, int period) {
+    final length = series.length;
+    final result = List<double?>.filled(length, null);
+    if (length <= period || period <= 0) {
+      return result;
+    }
+
+    double gainSum = 0.0;
+    double lossSum = 0.0;
+    for (int i = 1; i <= period; i++) {
+      final double change = series[i] - series[i - 1];
+      if (change > 0) {
+        gainSum += change;
+      } else {
+        lossSum -= change;
+      }
+    }
+    double avgGain = gainSum / period;
+    double avgLoss = lossSum / period;
+    double rs = avgLoss.abs() < 1e-12 ? double.infinity : avgGain / avgLoss;
+    result[period] = avgLoss.abs() < 1e-12 ? 100.0 : 100.0 - 100.0 / (1 + rs);
+
+    for (int i = period + 1; i < length; i++) {
+      final double change = series[i] - series[i - 1];
+      final double gain = change > 0 ? change : 0.0;
+      final double loss = change < 0 ? -change : 0.0;
+      avgGain = ((avgGain * (period - 1)) + gain) / period;
+      avgLoss = ((avgLoss * (period - 1)) + loss) / period;
+      if (avgLoss.abs() < 1e-12) {
+        result[i] = 100.0;
+      } else {
+        rs = avgGain / avgLoss;
+        result[i] = 100.0 - 100.0 / (1 + rs);
+      }
+    }
+
+    return result;
+  }
+
+  static double? _wmaAt(List<double> values, int index, int period) {
+    if (period <= 0 || index < period - 1) return null;
+    double numerator = 0.0;
+    int weight = 1;
+    for (int i = index - period + 1; i <= index; i++) {
+      numerator += values[i] * weight;
+      weight++;
+    }
+    final double denominator = period * (period + 1) / 2;
+    return denominator == 0 ? null : numerator / denominator;
+  }
+
+  static double? _wmaAtNullable(List<double?> values, int index, int period) {
+    if (period <= 0 || index < period - 1) return null;
+    double numerator = 0.0;
+    int weight = 1;
+    for (int i = index - period + 1; i <= index; i++) {
+      final double? value = values[i];
+      if (value == null) {
+        return null;
+      }
+      numerator += value * weight;
+      weight++;
+    }
+    final double denominator = period * (period + 1) / 2;
+    return denominator == 0 ? null : numerator / denominator;
   }
 }

@@ -7,6 +7,7 @@ import 'package:k_chart_multiple/flutter_k_chart.dart';
 
 import 'entity/trade_mark.dart';
 import 'entity/up_prob_report.dart';
+import 'renderer/trend_line_state.dart';
 
 enum MainState { MA, BOLL, NONE }
 
@@ -57,6 +58,29 @@ enum SecondaryState {
   MFI,
   ENVELOPES,
   VOLATILITY,
+  CMF,
+  CHAIKIN_OSC,
+  KLINGER,
+  VPT,
+  FORCE,
+  ROC,
+  ULTIMATE,
+  CONNORS_RSI,
+  STOCH_RSI,
+  RVI,
+  DPO,
+  KAMA,
+  HMA,
+  KELTNER,
+  DONCHIAN,
+  BOLL_BANDWIDTH,
+  CHAIKIN_VOLATILITY,
+  HV_PERCENTILE,
+  ATR_PERCENTILE,
+  ELDER_RAY,
+  ICHIMOKU_SPAN,
+  PIVOT,
+  GANN_FAN,
   NONE
 }
 
@@ -198,6 +222,10 @@ class _KChartWidgetState extends State<KChartWidget>
   double mSelectY = 0.0;
   bool waitingForOtherPairofCords = false;
   bool enableCordRecord = false;
+  int _lastDataLength = 0;
+  int? _lastDataTailTime;
+  final TrendLineState _trendLineState = TrendLineState();
+  static const Offset _pendingTrendLineEnd = Offset(-1, -1);
 
   double getMinScrollX() {
     return mScaleX;
@@ -210,6 +238,7 @@ class _KChartWidgetState extends State<KChartWidget>
   void initState() {
     super.initState();
     mInfoWindowStream = StreamController<InfoWindowEntity?>();
+    _captureDataSignature(widget.datas);
   }
 
   @override
@@ -218,9 +247,27 @@ class _KChartWidgetState extends State<KChartWidget>
   }
 
   @override
+  void didUpdateWidget(covariant KChartWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newDatas = widget.datas;
+    final oldDatas = oldWidget.datas;
+    final newLength = newDatas?.length ?? 0;
+    final newTailTime =
+        (newDatas != null && newDatas.isNotEmpty) ? newDatas.last.time : null;
+    final dataChanged = !identical(newDatas, oldDatas) ||
+        newLength != _lastDataLength ||
+        newTailTime != _lastDataTailTime;
+    if (dataChanged) {
+      _resetTrendLineState();
+    }
+    _captureDataSignature(newDatas);
+  }
+
+  @override
   void dispose() {
     mInfoWindowStream?.close();
     _controller?.dispose();
+    _resetTrendLineState(clearAllLines: true);
     super.dispose();
   }
 
@@ -236,6 +283,7 @@ class _KChartWidgetState extends State<KChartWidget>
       lines: lines, //For TrendLine
       isTrendLine: widget.isTrendLine, //For TrendLine
       selectY: mSelectY, //For TrendLine
+      trendLineState: _trendLineState,
       datas: widget.datas,
       scaleX: mScaleX,
       scrollX: mScrollX,
@@ -272,36 +320,46 @@ class _KChartWidgetState extends State<KChartWidget>
 
         return GestureDetector(
           onTapUp: (details) {
+            final localPosition = details.localPosition;
             if (widget.onSecondaryTap != null) {
-              final index = _painter.secondaryIndexAt(details.localPosition);
+              final index = _painter.secondaryIndexAt(localPosition);
               if (index != null) {
                 widget.onSecondaryTap!(index);
               }
             }
 
-            if (!widget.isTrendLine &&
-                _painter.isInMainRect(details.localPosition)) {
+            if (!widget.isTrendLine && _painter.isInMainRect(localPosition)) {
               isOnTap = true;
-              if (mSelectX != details.globalPosition.dx &&
-                  widget.isTapShowInfoDialog) {
-                mSelectX = details.globalPosition.dx;
+              final tappedX = _clampSelectX(localPosition.dx);
+              final tappedY = _clampSelectY(localPosition.dy);
+              if (widget.isTapShowInfoDialog &&
+                  (mSelectX != tappedX || mSelectY != tappedY)) {
+                mSelectX = tappedX;
+                mSelectY = tappedY;
                 notifyChanged();
               }
             }
             if (widget.isTrendLine && !isLongPress && enableCordRecord) {
               enableCordRecord = false;
-              Offset p1 = Offset(getTrendLineX(), mSelectY);
-              if (!waitingForOtherPairofCords)
-                lines.add(TrendLine(
-                    p1, Offset(-1, -1), trendLineMax!, trendLineScale!));
+              final clampedY = _clampSelectY(mSelectY);
+              final trendState = _trendLineState;
+              if (trendState.hasMetrics) {
+                final Offset p1 = Offset(trendState.currentX, clampedY);
+                final trendMax = trendState.maxValue!;
+                final trendScale = trendState.scale!;
+                if (!waitingForOtherPairofCords) {
+                  lines.add(TrendLine(
+                      p1, _pendingTrendLineEnd, trendMax, trendScale));
+                }
 
-              if (waitingForOtherPairofCords) {
-                var a = lines.last;
-                lines.removeLast();
-                lines.add(TrendLine(a.p1, p1, trendLineMax!, trendLineScale!));
-                waitingForOtherPairofCords = false;
-              } else {
-                waitingForOtherPairofCords = true;
+                if (waitingForOtherPairofCords) {
+                  var a = lines.last;
+                  lines.removeLast();
+                  lines.add(TrendLine(a.p1, p1, trendMax, trendScale));
+                  waitingForOtherPairofCords = false;
+                } else {
+                  waitingForOtherPairofCords = true;
+                }
               }
               notifyChanged();
             }
@@ -343,41 +401,44 @@ class _KChartWidgetState extends State<KChartWidget>
           onLongPressStart: (details) {
             isOnTap = false;
             isLongPress = true;
-            if ((mSelectX != details.globalPosition.dx ||
-                    mSelectY != details.globalPosition.dy) &&
-                !widget.isTrendLine) {
-              mSelectX = details.globalPosition.dx;
+            final localPosition = details.localPosition;
+            if (widget.isTrendLine) {
+              final clampedX = _clampSelectX(localPosition.dx);
+              final clampedY = _clampSelectY(localPosition.dy);
+              if (changeinXposition == null) {
+                mSelectX = clampedX;
+                mSelectY = clampedY;
+              }
+              changeinXposition = clampedX;
+              changeinYposition = clampedY;
               notifyChanged();
+            } else {
+              final newX = _clampSelectX(localPosition.dx);
+              final newY = _clampSelectY(localPosition.dy);
+              if (mSelectX != newX || mSelectY != newY) {
+                mSelectX = newX;
+                mSelectY = newY;
+                notifyChanged();
+              }
             }
-            //For TrendLine
-            if (widget.isTrendLine && changeinXposition == null) {
-              mSelectX = changeinXposition = details.globalPosition.dx;
-              mSelectY = changeinYposition = details.globalPosition.dy;
-              notifyChanged();
-            }
-            //For TrendLine
-            if (widget.isTrendLine && changeinXposition != null) {
-              changeinXposition = details.globalPosition.dx;
-              changeinYposition = details.globalPosition.dy;
-              notifyChanged();
-            }
-            // print('[onLongPressStart] SelectX: $mSelectX, SelectY: $mSelectY');
           },
           onLongPressMoveUpdate: (details) {
-            if ((mSelectX != details.globalPosition.dx ||
-                    mSelectY != details.globalPosition.dy) &&
-                !widget.isTrendLine) {
-              mSelectX = details.globalPosition.dx;
-              mSelectY = details.localPosition.dy;
-              notifyChanged();
-            }
-            if (widget.isTrendLine) {
-              mSelectX =
-                  mSelectX + (details.globalPosition.dx - changeinXposition!);
-              changeinXposition = details.globalPosition.dx;
-              mSelectY =
-                  mSelectY + (details.globalPosition.dy - changeinYposition!);
-              changeinYposition = details.globalPosition.dy;
+            final localPosition = details.localPosition;
+            if (!widget.isTrendLine) {
+              final newX = _clampSelectX(localPosition.dx);
+              final newY = _clampSelectY(localPosition.dy);
+              if (mSelectX != newX || mSelectY != newY) {
+                mSelectX = newX;
+                mSelectY = newY;
+                notifyChanged();
+              }
+            } else if (changeinXposition != null && changeinYposition != null) {
+              final deltaX = localPosition.dx - changeinXposition!;
+              final deltaY = localPosition.dy - changeinYposition!;
+              mSelectX = _clampSelectX(mSelectX + deltaX);
+              mSelectY = _clampSelectY(mSelectY + deltaY);
+              changeinXposition = _clampSelectX(localPosition.dx);
+              changeinYposition = _clampSelectY(localPosition.dy);
               notifyChanged();
             }
           },
@@ -419,6 +480,7 @@ class _KChartWidgetState extends State<KChartWidget>
   }
 
   void _onFling(double x) {
+    _controller?.dispose();
     _controller = AnimationController(
         duration: Duration(milliseconds: widget.flingTime), vsync: this);
     aniX = null;
@@ -457,7 +519,43 @@ class _KChartWidgetState extends State<KChartWidget>
     setState(() {});
   }
 
-  late List<String> infos;
+  void _captureDataSignature(List<KLineEntity>? datas) {
+    _lastDataLength = datas?.length ?? 0;
+    _lastDataTailTime =
+        (datas != null && datas.isNotEmpty) ? datas.last.time : null;
+  }
+
+  void _resetTrendLineState({bool clearAllLines = false}) {
+    _trendLineState.reset();
+    changeinXposition = null;
+    changeinYposition = null;
+    waitingForOtherPairofCords = false;
+    enableCordRecord = false;
+    if (lines.isEmpty) return;
+    if (clearAllLines) {
+      lines.clear();
+    } else {
+      _clearPendingTrendLines();
+    }
+  }
+
+  void _clearPendingTrendLines() {
+    lines.removeWhere((line) => line.p2 == _pendingTrendLineEnd);
+  }
+
+  double _clampSelectX(double value) {
+    if (mWidth <= 0) return value;
+    if (value < 0.0) return 0.0;
+    if (value > mWidth) return mWidth;
+    return value;
+  }
+
+  double _clampSelectY(double value) {
+    if (mHeight <= 0) return value;
+    if (value < 0.0) return 0.0;
+    if (value > mHeight) return mHeight;
+    return value;
+  }
 
   Widget _buildInfoDialog() {
     return StreamBuilder<InfoWindowEntity?>(
@@ -471,7 +569,7 @@ class _KChartWidgetState extends State<KChartWidget>
           double upDown = entity.change ?? entity.close - entity.open;
           double upDownPercent = entity.ratio ?? (upDown / entity.open) * 100;
           final double? entityAmount = entity.amount;
-          infos = [
+          final infos = [
             getDate(entity.time),
             entity.open.toStringAsFixed(widget.fixedLength),
             entity.high.toStringAsFixed(widget.fixedLength),
@@ -483,6 +581,10 @@ class _KChartWidgetState extends State<KChartWidget>
           ];
           final dialogPadding = 4.0;
           final dialogWidth = mWidth / 3;
+          // ignore: deprecated_member_use_from_same_package
+          final translations = widget.isChinese
+              ? kChartTranslations['zh_CN']!
+              : widget.translations.of(context);
           return Container(
             margin: EdgeInsets.only(
                 left: snapshot.data!.isLeft
@@ -500,11 +602,6 @@ class _KChartWidgetState extends State<KChartWidget>
               itemExtent: 14.0,
               shrinkWrap: true,
               itemBuilder: (context, index) {
-                // ignore: deprecated_member_use_from_same_package
-                final translations = widget.isChinese
-                    ? kChartTranslations['zh_CN']!
-                    : widget.translations.of(context);
-
                 return _buildItem(
                   infos[index],
                   translations.byIndex(index),

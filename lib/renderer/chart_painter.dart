@@ -20,6 +20,7 @@ import '../provider/ma_cross_signal_provider.dart';
 import '../provider/macd_signal_provider.dart';
 import '../provider/mfi_signal_provider.dart';
 import '../provider/momentum_signal_provider.dart';
+import '../provider/neutral_signal_provider.dart';
 import '../provider/obv_signal_provider.dart';
 import '../provider/ppo_signal_provider.dart';
 import '../provider/rsi_signal_provider.dart';
@@ -35,6 +36,7 @@ import '../provider/vortex_signal_provider.dart';
 import '../provider/vwap_signal_provider.dart';
 import '../provider/wpr_signal_provider.dart';
 import '../provider/wr_signal_provider.dart';
+import 'trend_line_state.dart';
 
 class TrendLine {
   final Offset p1;
@@ -45,17 +47,12 @@ class TrendLine {
   TrendLine(this.p1, this.p2, this.maxHeight, this.scale);
 }
 
-double? trendLineX;
-
-double getTrendLineX() {
-  return trendLineX ?? 0;
-}
-
 class ChartPainter extends BaseChartPainter {
   final List<TrendLine> lines; //For TrendLine
   final bool isTrendLine; //For TrendLine
   bool isrecordingCord = false; //For TrendLine
   final double selectY; //For TrendLine
+  final TrendLineState trendLineState;
   static get maxScrollX => BaseChartPainter.maxScrollX;
   late BaseChartRenderer mMainRenderer;
   BaseChartRenderer? mVolRenderer; //, mSecondaryRenderer;
@@ -105,6 +102,7 @@ class ChartPainter extends BaseChartPainter {
     required this.lines, //For TrendLine
     required this.isTrendLine, //For TrendLine
     required this.selectY, //For TrendLine
+    required this.trendLineState,
     required datas,
     required scaleX,
     required scrollX,
@@ -161,6 +159,29 @@ class ChartPainter extends BaseChartPainter {
           SecondaryState.VIX: const VixSignalProvider(),
           SecondaryState.VOLATILITY: const VolatilitySignalProvider(),
           SecondaryState.ENVELOPES: const EnvelopesSignalProvider(),
+          SecondaryState.CMF: const NeutralSignalProvider(),
+          SecondaryState.CHAIKIN_OSC: const NeutralSignalProvider(),
+          SecondaryState.KLINGER: const NeutralSignalProvider(),
+          SecondaryState.VPT: const NeutralSignalProvider(),
+          SecondaryState.FORCE: const NeutralSignalProvider(),
+          SecondaryState.ROC: const NeutralSignalProvider(),
+          SecondaryState.ULTIMATE: const NeutralSignalProvider(),
+          SecondaryState.CONNORS_RSI: const NeutralSignalProvider(),
+          SecondaryState.STOCH_RSI: const NeutralSignalProvider(),
+          SecondaryState.RVI: const NeutralSignalProvider(),
+          SecondaryState.DPO: const NeutralSignalProvider(),
+          SecondaryState.KAMA: const NeutralSignalProvider(),
+          SecondaryState.HMA: const NeutralSignalProvider(),
+          SecondaryState.KELTNER: const NeutralSignalProvider(),
+          SecondaryState.DONCHIAN: const NeutralSignalProvider(),
+          SecondaryState.BOLL_BANDWIDTH: const NeutralSignalProvider(),
+          SecondaryState.CHAIKIN_VOLATILITY: const NeutralSignalProvider(),
+          SecondaryState.HV_PERCENTILE: const NeutralSignalProvider(),
+          SecondaryState.ATR_PERCENTILE: const NeutralSignalProvider(),
+          SecondaryState.ELDER_RAY: const NeutralSignalProvider(),
+          SecondaryState.ICHIMOKU_SPAN: const NeutralSignalProvider(),
+          SecondaryState.PIVOT: const NeutralSignalProvider(),
+          SecondaryState.GANN_FAN: const NeutralSignalProvider(),
           // 若有
           // SecondaryState.BSSIGNAL: const BsSignalProvider(),
           // …… 如有更多副图指标，可一并注册
@@ -230,6 +251,7 @@ class ChartPainter extends BaseChartPainter {
       this.scaleX,
       verticalTextAlignment,
       maDayList,
+      trendLineState,
     );
 
     if (mVolRect != null) {
@@ -801,7 +823,7 @@ class ChartPainter extends BaseChartPainter {
       ..strokeWidth = 1
       ..isAntiAlias = true;
     double x = getX(index);
-    trendLineX = x;
+    trendLineState.setSelectedX(x);
 
     double y = selectY;
     // getMainY(point.close);
@@ -831,12 +853,15 @@ class ChartPainter extends BaseChartPainter {
               center: Offset(x, y), height: 10.0, width: 10.0 / scaleX),
           paint);
     }
-    if (lines.length >= 1) {
-      lines.forEach((element) {
+    if (lines.isNotEmpty && trendLineState.hasMetrics) {
+      final maxValue = trendLineState.maxValue!;
+      final scale = trendLineState.scale!;
+      final contentTop = trendLineState.contentTop!;
+      for (final element in lines) {
         var y1 = -((element.p1.dy - 35) / element.scale) + element.maxHeight;
         var y2 = -((element.p2.dy - 35) / element.scale) + element.maxHeight;
-        var a = (trendLineMax! - y1) * trendLineScale! + trendLineContentRec!;
-        var b = (trendLineMax! - y2) * trendLineScale! + trendLineContentRec!;
+        var a = (maxValue - y1) * scale + contentTop;
+        var b = (maxValue - y2) * scale + contentTop;
         var p1 = Offset(element.p1.dx, a);
         var p2 = Offset(element.p2.dx, b);
         canvas.drawLine(
@@ -845,7 +870,7 @@ class ChartPainter extends BaseChartPainter {
             Paint()
               ..color = Colors.yellow
               ..strokeWidth = 2);
-      });
+      }
     }
   }
 

@@ -4,13 +4,9 @@ import '../entity/candle_entity.dart';
 import '../entity/k_line_entity.dart';
 import '../k_chart_widget.dart' show MainState;
 import 'base_chart_renderer.dart';
+import 'trend_line_state.dart';
 
 enum VerticalTextAlignment { left, right }
-
-//For TrendLine
-double? trendLineMax;
-double? trendLineScale;
-double? trendLineContentRec;
 
 class MainRenderer extends BaseChartRenderer<CandleEntity> {
   late double mCandleWidth;
@@ -28,6 +24,7 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
   double scaleX;
   late Paint mLinePaint;
   final VerticalTextAlignment verticalTextAlignment;
+  final TrendLineState? trendLineState;
 
   MainRenderer(
       Rect mainRect,
@@ -41,7 +38,8 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
       this.chartColors,
       this.scaleX,
       this.verticalTextAlignment,
-      [this.maDayList = const [5, 10, 20]])
+      [this.maDayList = const [5, 10, 20],
+      this.trendLineState])
       : super(
             chartRect: mainRect,
             maxValue: maxValue,
@@ -349,8 +347,10 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
   }
 
   void updateTrendLineData() {
-    trendLineMax = maxValue;
-    trendLineScale = scaleY;
-    trendLineContentRec = _contentRect.top;
+    trendLineState?.updateMetrics(
+      maxValue: maxValue,
+      scale: scaleY,
+      contentTop: _contentRect.top,
+    );
   }
 }

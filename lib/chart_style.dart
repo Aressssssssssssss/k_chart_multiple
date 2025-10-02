@@ -145,6 +145,43 @@ class ChartColors {
 
   Color buySignalColor = Colors.green;
   Color sellSignalColor = Colors.red;
+
+  Color cmfColor = Colors.tealAccent;
+  Color chaikinOscColor = Colors.amberAccent;
+  Color klingerColor = Colors.lightBlueAccent;
+  Color klingerSignalColor = Colors.pinkAccent;
+  Color vptColor = Colors.limeAccent;
+  Color forceIndexColor = Colors.cyanAccent;
+  Color rocColor = Colors.orangeAccent;
+  Color rocSignalColor = Colors.deepPurpleAccent;
+  Color ultimateOscColor = Colors.yellowAccent;
+  Color connorsRsiColor = Colors.lightGreenAccent;
+  Color stochRsiKColor = Colors.greenAccent;
+  Color stochRsiDColor = Colors.redAccent;
+  Color rviColor = Colors.blueAccent;
+  Color rviSignalColor = Colors.deepOrangeAccent;
+  Color dpoColor = Colors.deepPurple;
+  Color kamaColor = Colors.cyan;
+  Color hmaColor = Colors.lime;
+  Color keltnerMidColor = Colors.blueGrey;
+  Color keltnerUpColor = Colors.greenAccent;
+  Color keltnerDnColor = Colors.redAccent;
+  Color donchianMidColor = Colors.blueGrey;
+  Color donchianUpColor = Colors.green;
+  Color donchianDnColor = Colors.red;
+  Color bollBandwidthColor = Colors.lightBlue;
+  Color chaikinVolatilityColor = Colors.pinkAccent;
+  Color hvPercentileColor = Colors.indigoAccent;
+  Color atrPercentileColor = Colors.deepOrange;
+  Color elderBullColor = Colors.greenAccent;
+  Color elderBearColor = Colors.redAccent;
+  Color ichimokuSpanDiffColor = Colors.amber;
+  Color pivotColor = Colors.blueGrey;
+  Color pivotResistanceColor = Colors.redAccent;
+  Color pivotSupportColor = Colors.greenAccent;
+  Color gann1x1Color = Colors.orangeAccent;
+  Color gann1x2Color = Colors.cyanAccent;
+  Color gann2x1Color = Colors.purpleAccent;
 }
 
 class ChartStyle {

@@ -302,6 +302,132 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
         drawLine(lastPoint.cci, curPoint.cci, canvas, lastX, curX,
             this.chartColors.rsiColor);
         break;
+      case SecondaryState.CMF:
+        drawLine(lastPoint.cmf, curPoint.cmf, canvas, lastX, curX,
+            chartColors.cmfColor);
+        break;
+      case SecondaryState.CHAIKIN_OSC:
+        drawLine(lastPoint.chaikinOscillator, curPoint.chaikinOscillator,
+            canvas, lastX, curX, chartColors.chaikinOscColor);
+        break;
+      case SecondaryState.KLINGER:
+        drawLine(lastPoint.kvo, curPoint.kvo, canvas, lastX, curX,
+            chartColors.klingerColor);
+        drawLine(lastPoint.kvoSignal, curPoint.kvoSignal, canvas, lastX, curX,
+            chartColors.klingerSignalColor);
+        break;
+      case SecondaryState.VPT:
+        drawLine(lastPoint.vpt, curPoint.vpt, canvas, lastX, curX,
+            chartColors.vptColor);
+        break;
+      case SecondaryState.FORCE:
+        drawLine(lastPoint.forceIndex, curPoint.forceIndex, canvas, lastX, curX,
+            chartColors.forceIndexColor);
+        break;
+      case SecondaryState.ROC:
+        drawLine(lastPoint.roc, curPoint.roc, canvas, lastX, curX,
+            chartColors.rocColor);
+        drawLine(lastPoint.rocSignal, curPoint.rocSignal, canvas, lastX, curX,
+            chartColors.rocSignalColor);
+        break;
+      case SecondaryState.ULTIMATE:
+        drawLine(lastPoint.ultimateOsc, curPoint.ultimateOsc, canvas, lastX,
+            curX, chartColors.ultimateOscColor);
+        break;
+      case SecondaryState.CONNORS_RSI:
+        drawLine(lastPoint.connorsRsi, curPoint.connorsRsi, canvas, lastX, curX,
+            chartColors.connorsRsiColor);
+        break;
+      case SecondaryState.STOCH_RSI:
+        drawLine(lastPoint.stochRsiK, curPoint.stochRsiK, canvas, lastX, curX,
+            chartColors.stochRsiKColor);
+        drawLine(lastPoint.stochRsiD, curPoint.stochRsiD, canvas, lastX, curX,
+            chartColors.stochRsiDColor);
+        break;
+      case SecondaryState.RVI:
+        drawLine(lastPoint.rvi, curPoint.rvi, canvas, lastX, curX,
+            chartColors.rviColor);
+        drawLine(lastPoint.rviSignal, curPoint.rviSignal, canvas, lastX, curX,
+            chartColors.rviSignalColor);
+        break;
+      case SecondaryState.DPO:
+        drawLine(lastPoint.dpo, curPoint.dpo, canvas, lastX, curX,
+            chartColors.dpoColor);
+        break;
+      case SecondaryState.KAMA:
+        drawLine(lastPoint.kama, curPoint.kama, canvas, lastX, curX,
+            chartColors.kamaColor);
+        break;
+      case SecondaryState.HMA:
+        drawLine(lastPoint.hma, curPoint.hma, canvas, lastX, curX,
+            chartColors.hmaColor);
+        break;
+      case SecondaryState.KELTNER:
+        drawLine(lastPoint.keltnerMiddle, curPoint.keltnerMiddle, canvas, lastX,
+            curX, chartColors.keltnerMidColor);
+        drawLine(lastPoint.keltnerUpper, curPoint.keltnerUpper, canvas, lastX,
+            curX, chartColors.keltnerUpColor);
+        drawLine(lastPoint.keltnerLower, curPoint.keltnerLower, canvas, lastX,
+            curX, chartColors.keltnerDnColor);
+        break;
+      case SecondaryState.DONCHIAN:
+        drawLine(lastPoint.donchianMiddle, curPoint.donchianMiddle, canvas,
+            lastX, curX, chartColors.donchianMidColor);
+        drawLine(lastPoint.donchianUpper, curPoint.donchianUpper, canvas, lastX,
+            curX, chartColors.donchianUpColor);
+        drawLine(lastPoint.donchianLower, curPoint.donchianLower, canvas, lastX,
+            curX, chartColors.donchianDnColor);
+        break;
+      case SecondaryState.BOLL_BANDWIDTH:
+        drawLine(lastPoint.bollBandwidth, curPoint.bollBandwidth, canvas, lastX,
+            curX, chartColors.bollBandwidthColor);
+        break;
+      case SecondaryState.CHAIKIN_VOLATILITY:
+        drawLine(lastPoint.chaikinVolatility, curPoint.chaikinVolatility,
+            canvas, lastX, curX, chartColors.chaikinVolatilityColor);
+        break;
+      case SecondaryState.HV_PERCENTILE:
+        drawLine(lastPoint.hvPercentile, curPoint.hvPercentile, canvas, lastX,
+            curX, chartColors.hvPercentileColor);
+        break;
+      case SecondaryState.ATR_PERCENTILE:
+        drawLine(lastPoint.atrPercentile, curPoint.atrPercentile, canvas, lastX,
+            curX, chartColors.atrPercentileColor);
+        break;
+      case SecondaryState.ELDER_RAY:
+        drawLine(lastPoint.elderBull, curPoint.elderBull, canvas, lastX, curX,
+            chartColors.elderBullColor);
+        drawLine(lastPoint.elderBear, curPoint.elderBear, canvas, lastX, curX,
+            chartColors.elderBearColor);
+        break;
+      case SecondaryState.ICHIMOKU_SPAN:
+        drawLine(lastPoint.ichimokuSpanDiff, curPoint.ichimokuSpanDiff, canvas,
+            lastX, curX, chartColors.ichimokuSpanDiffColor);
+        break;
+      case SecondaryState.PIVOT:
+        drawLine(lastPoint.pivot, curPoint.pivot, canvas, lastX, curX,
+            chartColors.pivotColor);
+        drawLine(lastPoint.pivotR1, curPoint.pivotR1, canvas, lastX, curX,
+            chartColors.pivotResistanceColor);
+        drawLine(lastPoint.pivotR2, curPoint.pivotR2, canvas, lastX, curX,
+            chartColors.pivotResistanceColor.withValues(alpha: 0.7));
+        drawLine(lastPoint.pivotR3, curPoint.pivotR3, canvas, lastX, curX,
+            chartColors.pivotResistanceColor.withValues(alpha: 0.4));
+        drawLine(lastPoint.pivotS1, curPoint.pivotS1, canvas, lastX, curX,
+            chartColors.pivotSupportColor);
+        drawLine(lastPoint.pivotS2, curPoint.pivotS2, canvas, lastX, curX,
+            chartColors.pivotSupportColor.withValues(alpha: 0.7));
+        drawLine(lastPoint.pivotS3, curPoint.pivotS3, canvas, lastX, curX,
+            chartColors.pivotSupportColor.withValues(alpha: 0.4));
+        break;
+      case SecondaryState.GANN_FAN:
+        drawLine(lastPoint.gann1x1, curPoint.gann1x1, canvas, lastX, curX,
+            chartColors.gann1x1Color);
+        drawLine(lastPoint.gann1x2, curPoint.gann1x2, canvas, lastX, curX,
+            chartColors.gann1x2Color);
+        drawLine(lastPoint.gann2x1, curPoint.gann2x1, canvas, lastX, curX,
+            chartColors.gann2x1Color);
+        break;
       default:
         break;
     }
@@ -971,6 +1097,206 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
           TextSpan(
               text: "CCI(14):${format(data.cci)}    ",
               style: getTextStyle(this.chartColors.rsiColor)),
+        ];
+        break;
+      case SecondaryState.CMF:
+        children = [
+          TextSpan(
+              text: "CMF:${format(data.cmf)}  ",
+              style: getTextStyle(chartColors.cmfColor)),
+        ];
+        break;
+      case SecondaryState.CHAIKIN_OSC:
+        children = [
+          TextSpan(
+              text: "Chaikin Osc:${format(data.chaikinOscillator)}  ",
+              style: getTextStyle(chartColors.chaikinOscColor)),
+        ];
+        break;
+      case SecondaryState.KLINGER:
+        children = [
+          TextSpan(
+              text: "KVO:${format(data.kvo)}  ",
+              style: getTextStyle(chartColors.klingerColor)),
+          TextSpan(
+              text: "Sig:${format(data.kvoSignal)}  ",
+              style: getTextStyle(chartColors.klingerSignalColor)),
+        ];
+        break;
+      case SecondaryState.VPT:
+        children = [
+          TextSpan(
+              text: "VPT:${format(data.vpt)}  ",
+              style: getTextStyle(chartColors.vptColor)),
+        ];
+        break;
+      case SecondaryState.FORCE:
+        children = [
+          TextSpan(
+              text: "Force:${format(data.forceIndex)}  ",
+              style: getTextStyle(chartColors.forceIndexColor)),
+        ];
+        break;
+      case SecondaryState.ROC:
+        children = [
+          TextSpan(
+              text: "ROC:${format(data.roc)}  ",
+              style: getTextStyle(chartColors.rocColor)),
+          TextSpan(
+              text: "Sig:${format(data.rocSignal)}  ",
+              style: getTextStyle(chartColors.rocSignalColor)),
+        ];
+        break;
+      case SecondaryState.ULTIMATE:
+        children = [
+          TextSpan(
+              text: "Ultimate:${format(data.ultimateOsc)}  ",
+              style: getTextStyle(chartColors.ultimateOscColor)),
+        ];
+        break;
+      case SecondaryState.CONNORS_RSI:
+        children = [
+          TextSpan(
+              text: "ConnorsRSI:${format(data.connorsRsi)}  ",
+              style: getTextStyle(chartColors.connorsRsiColor)),
+        ];
+        break;
+      case SecondaryState.STOCH_RSI:
+        children = [
+          TextSpan(
+              text: "StochRSI %K:${format(data.stochRsiK)}  ",
+              style: getTextStyle(chartColors.stochRsiKColor)),
+          TextSpan(
+              text: "%D:${format(data.stochRsiD)}  ",
+              style: getTextStyle(chartColors.stochRsiDColor)),
+        ];
+        break;
+      case SecondaryState.RVI:
+        children = [
+          TextSpan(
+              text: "RVI:${format(data.rvi)}  ",
+              style: getTextStyle(chartColors.rviColor)),
+          TextSpan(
+              text: "Sig:${format(data.rviSignal)}  ",
+              style: getTextStyle(chartColors.rviSignalColor)),
+        ];
+        break;
+      case SecondaryState.DPO:
+        children = [
+          TextSpan(
+              text: "DPO:${format(data.dpo)}  ",
+              style: getTextStyle(chartColors.dpoColor)),
+        ];
+        break;
+      case SecondaryState.KAMA:
+        children = [
+          TextSpan(
+              text: "KAMA:${format(data.kama)}  ",
+              style: getTextStyle(chartColors.kamaColor)),
+        ];
+        break;
+      case SecondaryState.HMA:
+        children = [
+          TextSpan(
+              text: "HMA:${format(data.hma)}  ",
+              style: getTextStyle(chartColors.hmaColor)),
+        ];
+        break;
+      case SecondaryState.KELTNER:
+        children = [
+          TextSpan(
+              text: "Keltner Mid:${format(data.keltnerMiddle)}  ",
+              style: getTextStyle(chartColors.keltnerMidColor)),
+          TextSpan(
+              text: "Up:${format(data.keltnerUpper)}  ",
+              style: getTextStyle(chartColors.keltnerUpColor)),
+          TextSpan(
+              text: "Dn:${format(data.keltnerLower)}  ",
+              style: getTextStyle(chartColors.keltnerDnColor)),
+        ];
+        break;
+      case SecondaryState.DONCHIAN:
+        children = [
+          TextSpan(
+              text: "Donchian Mid:${format(data.donchianMiddle)}  ",
+              style: getTextStyle(chartColors.donchianMidColor)),
+          TextSpan(
+              text: "Up:${format(data.donchianUpper)}  ",
+              style: getTextStyle(chartColors.donchianUpColor)),
+          TextSpan(
+              text: "Dn:${format(data.donchianLower)}  ",
+              style: getTextStyle(chartColors.donchianDnColor)),
+        ];
+        break;
+      case SecondaryState.BOLL_BANDWIDTH:
+        children = [
+          TextSpan(
+              text: "Boll BW:${format(data.bollBandwidth)}  ",
+              style: getTextStyle(chartColors.bollBandwidthColor)),
+        ];
+        break;
+      case SecondaryState.CHAIKIN_VOLATILITY:
+        children = [
+          TextSpan(
+              text: "Chaikin Vol:${format(data.chaikinVolatility)}  ",
+              style: getTextStyle(chartColors.chaikinVolatilityColor)),
+        ];
+        break;
+      case SecondaryState.HV_PERCENTILE:
+        children = [
+          TextSpan(
+              text: "HV %:${format(data.hvPercentile)}  ",
+              style: getTextStyle(chartColors.hvPercentileColor)),
+        ];
+        break;
+      case SecondaryState.ATR_PERCENTILE:
+        children = [
+          TextSpan(
+              text: "ATR %:${format(data.atrPercentile)}  ",
+              style: getTextStyle(chartColors.atrPercentileColor)),
+        ];
+        break;
+      case SecondaryState.ELDER_RAY:
+        children = [
+          TextSpan(
+              text: "Bull:${format(data.elderBull)}  ",
+              style: getTextStyle(chartColors.elderBullColor)),
+          TextSpan(
+              text: "Bear:${format(data.elderBear)}  ",
+              style: getTextStyle(chartColors.elderBearColor)),
+        ];
+        break;
+      case SecondaryState.ICHIMOKU_SPAN:
+        children = [
+          TextSpan(
+              text: "SpanΔ:${format(data.ichimokuSpanDiff)}  ",
+              style: getTextStyle(chartColors.ichimokuSpanDiffColor)),
+        ];
+        break;
+      case SecondaryState.PIVOT:
+        children = [
+          TextSpan(
+              text: "Pivot:${format(data.pivot)}  ",
+              style: getTextStyle(chartColors.pivotColor)),
+          TextSpan(
+              text: "R1:${format(data.pivotR1)}  ",
+              style: getTextStyle(chartColors.pivotResistanceColor)),
+          TextSpan(
+              text: "S1:${format(data.pivotS1)}  ",
+              style: getTextStyle(chartColors.pivotSupportColor)),
+        ];
+        break;
+      case SecondaryState.GANN_FAN:
+        children = [
+          TextSpan(
+              text: "Gann1x1:${format(data.gann1x1)}  ",
+              style: getTextStyle(chartColors.gann1x1Color)),
+          TextSpan(
+              text: "1x2:${format(data.gann1x2)}  ",
+              style: getTextStyle(chartColors.gann1x2Color)),
+          TextSpan(
+              text: "2x1:${format(data.gann2x1)}  ",
+              style: getTextStyle(chartColors.gann2x1Color)),
         ];
         break;
       default:

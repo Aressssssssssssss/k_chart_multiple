@@ -502,6 +502,178 @@ abstract class BaseChartPainter extends CustomPainter {
             newMax = math.max(newMax, item.cci!);
             newMin = math.min(newMin, item.cci!);
           }
+        } else if (st == SecondaryState.CMF) {
+          final val = item.cmf;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.CHAIKIN_OSC) {
+          final val = item.chaikinOscillator;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.KLINGER) {
+          final values = [item.kvo, item.kvoSignal];
+          for (final v in values) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
+        } else if (st == SecondaryState.VPT) {
+          final val = item.vpt;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.FORCE) {
+          final val = item.forceIndex;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.ROC) {
+          final values = [item.roc, item.rocSignal];
+          for (final v in values) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
+        } else if (st == SecondaryState.ULTIMATE) {
+          final val = item.ultimateOsc;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.CONNORS_RSI) {
+          final val = item.connorsRsi;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.STOCH_RSI) {
+          final values = [item.stochRsiK, item.stochRsiD];
+          for (final v in values) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
+        } else if (st == SecondaryState.RVI) {
+          final values = [item.rvi, item.rviSignal];
+          for (final v in values) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
+        } else if (st == SecondaryState.DPO) {
+          final val = item.dpo;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.KAMA) {
+          final val = item.kama;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.HMA) {
+          final val = item.hma;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.KELTNER) {
+          final values = [
+            item.keltnerUpper,
+            item.keltnerMiddle,
+            item.keltnerLower,
+          ];
+          for (final v in values) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
+        } else if (st == SecondaryState.DONCHIAN) {
+          final values = [
+            item.donchianUpper,
+            item.donchianMiddle,
+            item.donchianLower,
+          ];
+          for (final v in values) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
+        } else if (st == SecondaryState.BOLL_BANDWIDTH) {
+          final val = item.bollBandwidth;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.CHAIKIN_VOLATILITY) {
+          final val = item.chaikinVolatility;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.HV_PERCENTILE) {
+          final val = item.hvPercentile;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.ATR_PERCENTILE) {
+          final val = item.atrPercentile;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.ELDER_RAY) {
+          final values = [item.elderBull, item.elderBear];
+          for (final v in values) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
+        } else if (st == SecondaryState.ICHIMOKU_SPAN) {
+          final val = item.ichimokuSpanDiff;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.PIVOT) {
+          final values = [
+            item.pivot,
+            item.pivotR1,
+            item.pivotR2,
+            item.pivotR3,
+            item.pivotS1,
+            item.pivotS2,
+            item.pivotS3,
+          ];
+          for (final v in values) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
+        } else if (st == SecondaryState.GANN_FAN) {
+          final values = [item.gann1x1, item.gann1x2, item.gann2x1];
+          for (final v in values) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
         }
         // 回写到 Map
         mSecondaryMaxMap[st] = newMax;

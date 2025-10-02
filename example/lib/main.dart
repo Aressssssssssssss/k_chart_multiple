@@ -76,7 +76,12 @@ class MyHomePageState extends State<MyHomePage> {
   bool showLoading = true;
   MainState _mainState = MainState.MA;
   bool _volHidden = false;
-  final List<SecondaryState> _secondaryStates = [SecondaryState.KDJ];
+  final List<SecondaryState> _secondaryStates = const [
+    SecondaryState.KDJ,
+    SecondaryState.CMF,
+    SecondaryState.CHAIKIN_OSC,
+    SecondaryState.KLINGER,
+  ].toList();
   bool isLine = false;
   bool _hideGrid = false;
   bool _showNowPrice = true;
@@ -92,6 +97,128 @@ class MyHomePageState extends State<MyHomePage> {
   static const Map<String, ChartTranslations> _translations = {
     'en_US': ChartTranslations(),
     ...kChartTranslations,
+  };
+
+  static const List<SecondaryState> _newIndicatorStates = [
+    SecondaryState.CMF,
+    SecondaryState.CHAIKIN_OSC,
+    SecondaryState.KLINGER,
+    SecondaryState.VPT,
+    SecondaryState.FORCE,
+    SecondaryState.ROC,
+    SecondaryState.ULTIMATE,
+    SecondaryState.CONNORS_RSI,
+    SecondaryState.STOCH_RSI,
+    SecondaryState.RVI,
+    SecondaryState.DPO,
+    SecondaryState.KAMA,
+    SecondaryState.HMA,
+    SecondaryState.KELTNER,
+    SecondaryState.DONCHIAN,
+    SecondaryState.BOLL_BANDWIDTH,
+    SecondaryState.CHAIKIN_VOLATILITY,
+    SecondaryState.HV_PERCENTILE,
+    SecondaryState.ATR_PERCENTILE,
+    SecondaryState.ELDER_RAY,
+    SecondaryState.ICHIMOKU_SPAN,
+    SecondaryState.PIVOT,
+    SecondaryState.GANN_FAN,
+  ];
+
+  static const Map<SecondaryState, Map<String, String>>
+      _secondaryStateDisplayNames = {
+    SecondaryState.CMF: {
+      'en': 'Chaikin Money Flow',
+      'zh': '资金流量(CMF)',
+    },
+    SecondaryState.CHAIKIN_OSC: {
+      'en': 'Chaikin Oscillator',
+      'zh': 'Chaikin 振荡',
+    },
+    SecondaryState.KLINGER: {
+      'en': 'Klinger Volume Osc.',
+      'zh': 'Klinger 量振荡',
+    },
+    SecondaryState.VPT: {
+      'en': 'Volume Price Trend',
+      'zh': '量价趋势(VPT)',
+    },
+    SecondaryState.FORCE: {
+      'en': 'Force Index',
+      'zh': '能量指标',
+    },
+    SecondaryState.ROC: {
+      'en': 'Rate of Change',
+      'zh': '变动率(ROC)',
+    },
+    SecondaryState.ULTIMATE: {
+      'en': 'Ultimate Oscillator',
+      'zh': '终极振荡',
+    },
+    SecondaryState.CONNORS_RSI: {
+      'en': 'Connors RSI',
+      'zh': 'Connors RSI',
+    },
+    SecondaryState.STOCH_RSI: {
+      'en': 'Stochastic RSI',
+      'zh': '随机RSI',
+    },
+    SecondaryState.RVI: {
+      'en': 'Relative Vigor Index',
+      'zh': '相对活力指数(RVI)',
+    },
+    SecondaryState.DPO: {
+      'en': 'Detrended Price Osc.',
+      'zh': '去趋势振荡(DPO)',
+    },
+    SecondaryState.KAMA: {
+      'en': 'Kaufman Adaptive MA',
+      'zh': '卡夫曼自适应MA',
+    },
+    SecondaryState.HMA: {
+      'en': 'Hull Moving Avg.',
+      'zh': '赫尔均线(HMA)',
+    },
+    SecondaryState.KELTNER: {
+      'en': 'Keltner Channel',
+      'zh': '肯特纳通道',
+    },
+    SecondaryState.DONCHIAN: {
+      'en': 'Donchian Channel',
+      'zh': '唐奇安通道',
+    },
+    SecondaryState.BOLL_BANDWIDTH: {
+      'en': 'Bollinger Bandwidth',
+      'zh': '布林带宽度',
+    },
+    SecondaryState.CHAIKIN_VOLATILITY: {
+      'en': 'Chaikin Volatility',
+      'zh': 'Chaikin 波动',
+    },
+    SecondaryState.HV_PERCENTILE: {
+      'en': 'HV Percentile',
+      'zh': '历史波动百分位',
+    },
+    SecondaryState.ATR_PERCENTILE: {
+      'en': 'ATR Percentile',
+      'zh': 'ATR 百分位',
+    },
+    SecondaryState.ELDER_RAY: {
+      'en': 'Elder Ray',
+      'zh': '艾尔德射线',
+    },
+    SecondaryState.ICHIMOKU_SPAN: {
+      'en': 'Ichimoku Span Δ',
+      'zh': '一目云差值',
+    },
+    SecondaryState.PIVOT: {
+      'en': 'Pivot Levels',
+      'zh': '枢轴点',
+    },
+    SecondaryState.GANN_FAN: {
+      'en': 'Gann Fan',
+      'zh': '江恩扇形',
+    },
   };
 
   @override
@@ -115,26 +242,33 @@ class MyHomePageState extends State<MyHomePage> {
 
   void initDepth(List<DepthEntity>? bids, List<DepthEntity>? asks) {
     if (bids == null || asks == null || bids.isEmpty || asks.isEmpty) return;
-    _bids = [];
-    _asks = [];
+
+    final processedBids = <DepthEntity>[];
+    final processedAsks = <DepthEntity>[];
+
     double amount = 0.0;
-    bids.sort((left, right) => left.price.compareTo(right.price));
+    final sortedBids = [...bids]
+      ..sort((left, right) => left.price.compareTo(right.price));
     // 累加买入委托量
-    for (final item in bids.reversed) {
+    for (final item in sortedBids.reversed) {
       amount += item.vol;
-      item.vol = amount;
-      _bids!.insert(0, item);
+      processedBids.insert(0, DepthEntity(item.price, amount));
     }
 
     amount = 0.0;
-    asks.sort((left, right) => left.price.compareTo(right.price));
+    final sortedAsks = [...asks]
+      ..sort((left, right) => left.price.compareTo(right.price));
     // 累加卖出委托量
-    for (final item in asks) {
+    for (final item in sortedAsks) {
       amount += item.vol;
-      item.vol = amount;
-      _asks!.add(item);
+      processedAsks.add(DepthEntity(item.price, amount));
     }
-    setState(() {});
+
+    if (!mounted) return;
+    setState(() {
+      _bids = processedBids;
+      _asks = processedAsks;
+    });
   }
 
   @override
@@ -250,75 +384,143 @@ class MyHomePageState extends State<MyHomePage> {
   }
 
   Widget buildButtons(String localeTag) {
-    return Wrap(
-      alignment: WrapAlignment.spaceEvenly,
-      children: <Widget>[
-        button(_localizedLabel('Time Mode', '分时', localeTag),
-            onPressed: () => isLine = true),
-        button(_localizedLabel('K Line Mode', 'K线模式', localeTag),
-            onPressed: () => isLine = false),
-        button(_localizedLabel('TrendLine', '画趋势线', localeTag),
-            onPressed: () => _isTrendLine = !_isTrendLine),
-        button(_localizedLabel('Line:MA', '主图:MA', localeTag),
-            onPressed: () => _mainState = MainState.MA),
-        button(_localizedLabel('Line:BOLL', '主图:BOLL', localeTag),
-            onPressed: () => _mainState = MainState.BOLL),
-        button(_localizedLabel('Hide Line', '主图:隐藏', localeTag),
-            onPressed: () => _mainState = MainState.NONE),
-        ...SecondaryState.values.map((state) {
-          final label = state.toString().split('.').last;
-          return button(label, onPressed: () {
-            if (_secondaryStates.contains(state)) {
-              _secondaryStates.remove(state); // 取消选中
-            } else {
-              _secondaryStates.add(state); // 添加选中
-            }
-          });
-        }),
-        button(_localizedLabel('Hide Secondary', '清空副图', localeTag),
-            onPressed: () => _secondaryStates.clear()),
-        button(
-            _volHidden
-                ? _localizedLabel('Show Vol', '显示成交量', localeTag)
-                : _localizedLabel('Hide Vol', '隐藏成交量', localeTag),
-            onPressed: () => _volHidden = !_volHidden),
-        button(
-            _hideGrid
-                ? _localizedLabel('Show Grid', '显示网格', localeTag)
-                : _localizedLabel('Hide Grid', '隐藏网格', localeTag),
-            onPressed: () => _hideGrid = !_hideGrid),
-        button(
-            _showNowPrice
-                ? _localizedLabel('Hide Now Price', '隐藏最新价', localeTag)
-                : _localizedLabel('Show Now Price', '显示最新价', localeTag),
-            onPressed: () => _showNowPrice = !_showNowPrice),
-        button(_localizedLabel('Customize UI', '自定义样式', localeTag),
-            onPressed: () {
-          isChangeUI = !isChangeUI;
-          if (isChangeUI) {
-            chartColors.selectBorderColor = Colors.red;
-            chartColors.selectFillColor = Colors.red;
-            chartColors.lineFillColor = Colors.red;
-            chartColors.kLineColor = Colors.yellow;
-          } else {
-            chartColors.selectBorderColor = const Color(0xff6C7A86);
-            chartColors.selectFillColor = const Color(0xff0D1722);
-            chartColors.lineFillColor = const Color(0x554C86CD);
-            chartColors.kLineColor = const Color(0xff4C86CD);
-          }
-        }),
-        button(_localizedLabel('Toggle Price Label', '切换价位文字', localeTag),
-            onPressed: () {
-          _priceLeft = !_priceLeft;
-          _verticalTextAlignment = _priceLeft
-              ? VerticalTextAlignment.left
-              : VerticalTextAlignment.right;
-        }),
+    final Set<SecondaryState> newIndicatorSet = _newIndicatorStates.toSet();
+    final List<SecondaryState> classicIndicators = SecondaryState.values
+        .where((state) =>
+            state != SecondaryState.NONE && !newIndicatorSet.contains(state))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          alignment: WrapAlignment.spaceEvenly,
+          children: <Widget>[
+            button(_localizedLabel('Time Mode', '分时', localeTag),
+                selected: isLine, onPressed: () => isLine = true),
+            button(_localizedLabel('K Line Mode', 'K线模式', localeTag),
+                selected: !isLine, onPressed: () => isLine = false),
+            button(_localizedLabel('TrendLine', '画趋势线', localeTag),
+                selected: _isTrendLine,
+                onPressed: () => _isTrendLine = !_isTrendLine),
+            button(_localizedLabel('Line:MA', '主图:MA', localeTag),
+                selected: _mainState == MainState.MA,
+                onPressed: () => _mainState = MainState.MA),
+            button(_localizedLabel('Line:BOLL', '主图:BOLL', localeTag),
+                selected: _mainState == MainState.BOLL,
+                onPressed: () => _mainState = MainState.BOLL),
+            button(_localizedLabel('Hide Line', '主图:隐藏', localeTag),
+                selected: _mainState == MainState.NONE,
+                onPressed: () => _mainState = MainState.NONE),
+            button(_localizedLabel('Hide Secondary', '清空副图', localeTag),
+                selected: _secondaryStates.isEmpty,
+                onPressed: () => _secondaryStates.clear()),
+            button(
+                _volHidden
+                    ? _localizedLabel('Show Vol', '显示成交量', localeTag)
+                    : _localizedLabel('Hide Vol', '隐藏成交量', localeTag),
+                selected: _volHidden,
+                onPressed: () => _volHidden = !_volHidden),
+            button(
+                _hideGrid
+                    ? _localizedLabel('Show Grid', '显示网格', localeTag)
+                    : _localizedLabel('Hide Grid', '隐藏网格', localeTag),
+                selected: _hideGrid,
+                onPressed: () => _hideGrid = !_hideGrid),
+            button(
+                _showNowPrice
+                    ? _localizedLabel('Hide Now Price', '隐藏最新价', localeTag)
+                    : _localizedLabel('Show Now Price', '显示最新价', localeTag),
+                selected: !_showNowPrice,
+                onPressed: () => _showNowPrice = !_showNowPrice),
+            button(_localizedLabel('Customize UI', '自定义样式', localeTag),
+                selected: isChangeUI, onPressed: () {
+              isChangeUI = !isChangeUI;
+              if (isChangeUI) {
+                chartColors.selectBorderColor = Colors.red;
+                chartColors.selectFillColor = Colors.red;
+                chartColors.lineFillColor = Colors.red;
+                chartColors.kLineColor = Colors.yellow;
+              } else {
+                chartColors.selectBorderColor = const Color(0xff6C7A86);
+                chartColors.selectFillColor = const Color(0xff0D1722);
+                chartColors.lineFillColor = const Color(0x554C86CD);
+                chartColors.kLineColor = const Color(0xff4C86CD);
+              }
+            }),
+            button(_localizedLabel('Toggle Price Label', '切换价位文字', localeTag),
+                selected: !_priceLeft, onPressed: () {
+              _priceLeft = !_priceLeft;
+              _verticalTextAlignment = _priceLeft
+                  ? VerticalTextAlignment.left
+                  : VerticalTextAlignment.right;
+            }),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(
+            _localizedLabel('Classic Secondary Indicators', '经典副图', localeTag),
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          alignment: WrapAlignment.start,
+          children: _buildSecondaryButtons(classicIndicators, localeTag),
+        ),
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(
+            _localizedLabel('New Secondary Indicators', '新增副图', localeTag),
+            style: Theme.of(context)
+                .textTheme
+                .titleSmall
+                ?.copyWith(color: Colors.orangeAccent),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          alignment: WrapAlignment.start,
+          children: _buildSecondaryButtons(_newIndicatorStates, localeTag),
+        ),
       ],
     );
   }
 
-  Widget button(String text, {VoidCallback? onPressed}) {
+  List<Widget> _buildSecondaryButtons(
+      List<SecondaryState> states, String localeTag) {
+    return states.map((state) {
+      final label = _secondaryStateName(state, localeTag);
+      return button(
+        label,
+        selected: _secondaryStates.contains(state),
+        onPressed: () {
+          if (_secondaryStates.contains(state)) {
+            _secondaryStates.remove(state);
+          } else {
+            _secondaryStates.add(state);
+          }
+        },
+      );
+    }).toList();
+  }
+
+  String _secondaryStateName(SecondaryState state, String localeTag) {
+    final labels = _secondaryStateDisplayNames[state];
+    if (labels == null) {
+      return state.toString().split('.').last;
+    }
+    if (localeTag == 'zh_CN') {
+      return labels['zh'] ?? labels['en'] ?? state.toString().split('.').last;
+    }
+    return labels['en'] ?? state.toString().split('.').last;
+  }
+
+  Widget button(String text, {VoidCallback? onPressed, bool selected = false}) {
+    final Color backgroundColor = selected ? Colors.orange : Colors.blue;
     return TextButton(
       onPressed: onPressed == null
           ? null
@@ -333,9 +535,18 @@ class MyHomePageState extends State<MyHomePage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(2.0)),
         ),
-        backgroundColor: Colors.blue,
+        backgroundColor: backgroundColor,
       ),
-      child: Text(text),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (selected) ...[
+            const Icon(Icons.check, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+          ],
+          Text(text),
+        ],
+      ),
     );
   }
 
@@ -409,10 +620,16 @@ class MyHomePageState extends State<MyHomePage> {
   Future<void> getData() async {
     try {
       final result = await getChatDataFromJson();
+      if (!mounted) return;
       solveChatData(result);
     } catch (error) {
-      showLoading = false;
-      setState(() {});
+      if (!mounted) {
+        debugPrint('Failed to load chart data: $error');
+        return;
+      }
+      setState(() {
+        showLoading = false;
+      });
       debugPrint('Failed to load chart data: $error');
     }
   }
@@ -435,16 +652,19 @@ class MyHomePageState extends State<MyHomePage> {
   }
 
   void solveChatData(String result) {
-    final Map parseJson = json.decode(result) as Map<dynamic, dynamic>;
-    final list = parseJson['data'] as List<dynamic>;
-    datas = list
+    final Map<String, dynamic> parseJson =
+        json.decode(result) as Map<String, dynamic>;
+    final rawList = (parseJson['data'] as List<dynamic>)
         .map((item) => KLineEntity.fromJson(item as Map<String, dynamic>))
         .toList()
         .reversed
-        .toList()
-        .cast<KLineEntity>();
-    DataUtil.calculate(datas!);
-    showLoading = false;
-    setState(() {});
+        .toList();
+    final parsedData = rawList.cast<KLineEntity>();
+    DataUtil.calculate(parsedData);
+    if (!mounted) return;
+    setState(() {
+      datas = parsedData;
+      showLoading = false;
+    });
   }
 }

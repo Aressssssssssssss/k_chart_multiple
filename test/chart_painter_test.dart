@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:k_chart_multiple/entity/up_prob_report.dart';
 import 'package:k_chart_multiple/flutter_k_chart.dart';
+import 'package:k_chart_multiple/renderer/trend_line_state.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,7 @@ void main() {
       lines: const [],
       isTrendLine: false,
       selectY: 0,
+      trendLineState: TrendLineState(),
       datas: data,
       scaleX: 1.0,
       scrollX: 0.0,
@@ -55,6 +57,7 @@ void main() {
       lines: const [],
       isTrendLine: false,
       selectY: 0,
+      trendLineState: TrendLineState(),
       datas: data,
       scaleX: 1.0,
       scrollX: 0.0,
