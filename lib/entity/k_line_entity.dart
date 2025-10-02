@@ -1,5 +1,27 @@
 import '../entity/k_entity.dart';
 
+double _parseDouble(dynamic value) {
+  if (value == null) return 0;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? 0;
+  return 0;
+}
+
+double? _parseNullableDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
+}
+
+int? _parseInt(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
 class KLineEntity extends KEntity {
   late double open;
   late double high;
@@ -29,27 +51,30 @@ class KLineEntity extends KEntity {
   });
 
   KLineEntity.fromJson(Map<String, dynamic> json) {
-    open = double.tryParse(json['open'] ?? "0") ?? 0;
-    high = double.tryParse(json['high'] ?? "0") ?? 0;
-    low = double.tryParse(json['low'] ?? "0") ?? 0;
-    close = double.tryParse(json['close'] ?? "0") ?? 0;
-    vol = double.tryParse(json['vol'] ?? "0") ?? 0;
-    amount = double.tryParse(json['amount'] ?? "0") ?? 0;
-    int? tempTime = int.tryParse(json['time'] ?? "0") ?? 0;
-    //兼容火币数据
+    open = _parseDouble(json['open']);
+    high = _parseDouble(json['high']);
+    low = _parseDouble(json['low']);
+    close = _parseDouble(json['close']);
+    vol = _parseDouble(json['vol']);
+    amount = _parseNullableDouble(json['amount']);
+
+    int? tempTime = _parseInt(json['time']);
     if (tempTime == null) {
-      tempTime = int.tryParse(json['id'] ?? "0") ?? 0;
-      tempTime = tempTime! * 1000;
+      final id = _parseInt(json['id']);
+      if (id != null) {
+        tempTime = id * 1000;
+      }
     }
-    time = tempTime;
-    ratio = double.tryParse(json['ratio'] ?? "0") ?? 0;
-    change = double.tryParse(json['change'] ?? "0") ?? 0;
+    time = tempTime ?? 0;
+
+    ratio = _parseNullableDouble(json['ratio']);
+    change = _parseNullableDouble(json['change']);
 
     // 如果后端也返回了 'pdi', 'mdi', 'adx', 'adxr' 字段:
-    pdi = double.tryParse(json['pdi'] ?? "0") ?? 0;
-    mdi = double.tryParse(json['mdi'] ?? "0") ?? 0;
-    adx = double.tryParse(json['adx'] ?? "0") ?? 0;
-    adxr = double.tryParse(json['adxr'] ?? "0") ?? 0;
+    pdi = _parseNullableDouble(json['pdi']);
+    mdi = _parseNullableDouble(json['mdi']);
+    adx = _parseNullableDouble(json['adx']);
+    adxr = _parseNullableDouble(json['adxr']);
   }
 
   Map<String, dynamic> toJson() {
