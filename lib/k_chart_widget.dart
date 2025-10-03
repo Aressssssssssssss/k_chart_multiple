@@ -81,6 +81,13 @@ enum SecondaryState {
   ICHIMOKU_SPAN,
   PIVOT,
   GANN_FAN,
+  SUPER_TREND,
+  STC,
+  QQE,
+  WAVE_TREND,
+  CMO,
+  EOM,
+  PVI_NVI,
   NONE
 }
 

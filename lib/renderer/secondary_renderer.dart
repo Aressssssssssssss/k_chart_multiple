@@ -191,6 +191,56 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
             chartColors.atrColor);
         break;
 
+      case SecondaryState.SUPER_TREND:
+        final double? dir =
+            curPoint.superTrendDirection ?? lastPoint.superTrendDirection;
+        final Color trendColor = (dir ?? 1.0) >= 0
+            ? chartColors.superTrendUpColor
+            : chartColors.superTrendDownColor;
+        drawLine(lastPoint.superTrend, curPoint.superTrend, canvas, lastX, curX,
+            trendColor);
+        drawLine(lastPoint.superTrendUpper, curPoint.superTrendUpper, canvas,
+            lastX, curX, chartColors.superTrendUpperColor);
+        drawLine(lastPoint.superTrendLower, curPoint.superTrendLower, canvas,
+            lastX, curX, chartColors.superTrendLowerColor);
+        break;
+
+      case SecondaryState.STC:
+        drawLine(lastPoint.stc, curPoint.stc, canvas, lastX, curX,
+            chartColors.stcColor);
+        break;
+
+      case SecondaryState.QQE:
+        drawLine(lastPoint.qqe, curPoint.qqe, canvas, lastX, curX,
+            chartColors.qqeColor);
+        drawLine(lastPoint.qqeSignal, curPoint.qqeSignal, canvas, lastX, curX,
+            chartColors.qqeSignalColor);
+        break;
+
+      case SecondaryState.WAVE_TREND:
+        drawLine(lastPoint.waveTrend1, curPoint.waveTrend1, canvas, lastX, curX,
+            chartColors.waveTrend1Color);
+        drawLine(lastPoint.waveTrend2, curPoint.waveTrend2, canvas, lastX, curX,
+            chartColors.waveTrend2Color);
+        break;
+
+      case SecondaryState.CMO:
+        drawLine(lastPoint.cmo, curPoint.cmo, canvas, lastX, curX,
+            chartColors.cmoColor);
+        break;
+
+      case SecondaryState.EOM:
+        drawLine(lastPoint.eom, curPoint.eom, canvas, lastX, curX,
+            chartColors.eomColor);
+        break;
+
+      case SecondaryState.PVI_NVI:
+        drawLine(lastPoint.pvi, curPoint.pvi, canvas, lastX, curX,
+            chartColors.pviColor);
+        drawLine(lastPoint.nvi, curPoint.nvi, canvas, lastX, curX,
+            chartColors.nviColor);
+        break;
+
       case SecondaryState.VORTEX:
         drawLine(lastPoint.viPlus, curPoint.viPlus, canvas, lastX, curX,
             chartColors.vortexPlusColor);
@@ -510,6 +560,171 @@ class SecondaryRenderer extends BaseChartRenderer<KLineEntity> {
             text: TextSpan(children: spans), textDirection: TextDirection.ltr);
         tp.layout();
         tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
+      case SecondaryState.SUPER_TREND:
+        List<TextSpan> spans = [];
+        spans.add(TextSpan(
+          text: "SuperTrend  ",
+          style: getTextStyle(chartColors.defaultTextColor),
+        ));
+        if (data.superTrend != null) {
+          final Color trendColor = (data.superTrendDirection ?? 1.0) >= 0
+              ? chartColors.superTrendUpColor
+              : chartColors.superTrendDownColor;
+          spans.add(TextSpan(
+            text: "ST:${format(data.superTrend)}  ",
+            style: getTextStyle(trendColor),
+          ));
+        }
+        if (data.superTrendUpper != null) {
+          spans.add(TextSpan(
+            text: "UP:${format(data.superTrendUpper)}  ",
+            style: getTextStyle(chartColors.superTrendUpperColor),
+          ));
+        }
+        if (data.superTrendLower != null) {
+          spans.add(TextSpan(
+            text: "DN:${format(data.superTrendLower)}  ",
+            style: getTextStyle(chartColors.superTrendLowerColor),
+          ));
+        }
+        TextPainter tp = TextPainter(
+            text: TextSpan(children: spans), textDirection: TextDirection.ltr);
+        tp.layout();
+        tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
+      case SecondaryState.STC:
+        List<TextSpan> stcSpans = [];
+        stcSpans.add(TextSpan(
+          text: "STC  ",
+          style: getTextStyle(chartColors.defaultTextColor),
+        ));
+        if (data.stc != null) {
+          stcSpans.add(TextSpan(
+            text: "${format(data.stc)}  ",
+            style: getTextStyle(chartColors.stcColor),
+          ));
+        }
+        TextPainter tpStc = TextPainter(
+            text: TextSpan(children: stcSpans),
+            textDirection: TextDirection.ltr);
+        tpStc.layout();
+        tpStc.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
+      case SecondaryState.QQE:
+        List<TextSpan> qqeSpans = [];
+        qqeSpans.add(TextSpan(
+          text: "QQE  ",
+          style: getTextStyle(chartColors.defaultTextColor),
+        ));
+        if (data.qqe != null) {
+          qqeSpans.add(TextSpan(
+            text: "Main:${format(data.qqe)}  ",
+            style: getTextStyle(chartColors.qqeColor),
+          ));
+        }
+        if (data.qqeSignal != null) {
+          qqeSpans.add(TextSpan(
+            text: "Sig:${format(data.qqeSignal)}  ",
+            style: getTextStyle(chartColors.qqeSignalColor),
+          ));
+        }
+        TextPainter tpQqe = TextPainter(
+            text: TextSpan(children: qqeSpans),
+            textDirection: TextDirection.ltr);
+        tpQqe.layout();
+        tpQqe.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
+      case SecondaryState.WAVE_TREND:
+        List<TextSpan> wtSpans = [];
+        wtSpans.add(TextSpan(
+          text: "WaveTrend  ",
+          style: getTextStyle(chartColors.defaultTextColor),
+        ));
+        if (data.waveTrend1 != null) {
+          wtSpans.add(TextSpan(
+            text: "WT1:${format(data.waveTrend1)}  ",
+            style: getTextStyle(chartColors.waveTrend1Color),
+          ));
+        }
+        if (data.waveTrend2 != null) {
+          wtSpans.add(TextSpan(
+            text: "WT2:${format(data.waveTrend2)}  ",
+            style: getTextStyle(chartColors.waveTrend2Color),
+          ));
+        }
+        TextPainter tpWt = TextPainter(
+            text: TextSpan(children: wtSpans),
+            textDirection: TextDirection.ltr);
+        tpWt.layout();
+        tpWt.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
+      case SecondaryState.CMO:
+        List<TextSpan> cmoSpans = [];
+        cmoSpans.add(TextSpan(
+          text: "CMO  ",
+          style: getTextStyle(chartColors.defaultTextColor),
+        ));
+        if (data.cmo != null) {
+          cmoSpans.add(TextSpan(
+            text: "${format(data.cmo)}  ",
+            style: getTextStyle(chartColors.cmoColor),
+          ));
+        }
+        TextPainter tpCmo = TextPainter(
+            text: TextSpan(children: cmoSpans),
+            textDirection: TextDirection.ltr);
+        tpCmo.layout();
+        tpCmo.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
+      case SecondaryState.EOM:
+        List<TextSpan> eomSpans = [];
+        eomSpans.add(TextSpan(
+          text: "EOM  ",
+          style: getTextStyle(chartColors.defaultTextColor),
+        ));
+        if (data.eom != null) {
+          eomSpans.add(TextSpan(
+            text: "${format(data.eom)}  ",
+            style: getTextStyle(chartColors.eomColor),
+          ));
+        }
+        TextPainter tpEom = TextPainter(
+            text: TextSpan(children: eomSpans),
+            textDirection: TextDirection.ltr);
+        tpEom.layout();
+        tpEom.paint(canvas, Offset(x, chartRect.top - topPadding));
+        break;
+
+      case SecondaryState.PVI_NVI:
+        List<TextSpan> pviSpans = [];
+        pviSpans.add(TextSpan(
+          text: "PVI/NVI  ",
+          style: getTextStyle(chartColors.defaultTextColor),
+        ));
+        if (data.pvi != null) {
+          pviSpans.add(TextSpan(
+            text: "P:${format(data.pvi)}  ",
+            style: getTextStyle(chartColors.pviColor),
+          ));
+        }
+        if (data.nvi != null) {
+          pviSpans.add(TextSpan(
+            text: "N:${format(data.nvi)}  ",
+            style: getTextStyle(chartColors.nviColor),
+          ));
+        }
+        TextPainter tpPvi = TextPainter(
+            text: TextSpan(children: pviSpans),
+            textDirection: TextDirection.ltr);
+        tpPvi.layout();
+        tpPvi.paint(canvas, Offset(x, chartRect.top - topPadding));
         break;
 
       case SecondaryState.MFI:

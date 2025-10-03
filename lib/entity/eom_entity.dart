@@ -1,0 +1,3 @@
+mixin EomEntity {
+  double? eom;
+}

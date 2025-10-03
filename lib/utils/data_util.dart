@@ -61,6 +61,13 @@ class DataUtil {
     _computeIchimokuSpanDiff(dataList);
     _computePivotPoints(dataList);
     _computeGannFan(dataList);
+    _computeSuperTrend(dataList);
+    _computeStc(dataList);
+    _computeQqe(dataList);
+    _computeWaveTrend(dataList);
+    _computeCmo(dataList);
+    _computeEom(dataList);
+    _computePviNvi(dataList);
 
     _calculateProbabilities(dataList);
   }
@@ -3071,6 +3078,312 @@ class DataUtil {
       data[i].gann1x1 = normalized;
       data[i].gann1x2 = normalized / 2.0;
       data[i].gann2x1 = (normalized * 2).clamp(-2.0, 2.0);
+    }
+  }
+
+  static void _computeSuperTrend(List<KLineEntity> data,
+      {double multiplier = 3.0}) {
+    if (data.isEmpty) return;
+
+    double? prevUpper;
+    double? prevLower;
+    bool? prevUpTrend;
+    for (int i = 0; i < data.length; i++) {
+      final entity = data[i];
+      final double? atr = entity.atr;
+      if (atr == null || !atr.isFinite) {
+        entity.superTrend = null;
+        entity.superTrendUpper = null;
+        entity.superTrendLower = null;
+        entity.superTrendDirection = null;
+        prevUpper = null;
+        prevLower = null;
+        prevUpTrend = null;
+        continue;
+      }
+
+      final double hl2 = (entity.high + entity.low) / 2.0;
+      double upperBasic = hl2 + multiplier * atr;
+      double lowerBasic = hl2 - multiplier * atr;
+
+      if (prevUpper != null) {
+        if (upperBasic > prevUpper && i > 0 && data[i - 1].close <= prevUpper) {
+          upperBasic = prevUpper;
+        }
+        upperBasic = math.min(upperBasic, prevUpper);
+      }
+
+      if (prevLower != null) {
+        if (lowerBasic < prevLower && i > 0 && data[i - 1].close >= prevLower) {
+          lowerBasic = prevLower;
+        }
+        lowerBasic = math.max(lowerBasic, prevLower);
+      }
+
+      bool isUpTrend;
+      double trendValue;
+      if (prevUpTrend == null) {
+        isUpTrend = entity.close >= lowerBasic;
+        trendValue = isUpTrend ? lowerBasic : upperBasic;
+      } else if (prevUpTrend) {
+        if (entity.close < upperBasic) {
+          isUpTrend = false;
+          trendValue = upperBasic;
+        } else {
+          isUpTrend = true;
+          trendValue = lowerBasic;
+        }
+      } else {
+        if (entity.close > lowerBasic) {
+          isUpTrend = true;
+          trendValue = lowerBasic;
+        } else {
+          isUpTrend = false;
+          trendValue = upperBasic;
+        }
+      }
+
+      entity.superTrend = trendValue;
+      entity.superTrendUpper = upperBasic;
+      entity.superTrendLower = lowerBasic;
+      entity.superTrendDirection = isUpTrend ? 1.0 : -1.0;
+
+      prevUpper = upperBasic;
+      prevLower = lowerBasic;
+      prevUpTrend = isUpTrend;
+    }
+  }
+
+  static void _computeStc(List<KLineEntity> data,
+      {int shortPeriod = 23,
+      int longPeriod = 50,
+      int cycle = 10,
+      int smooth = 3}) {
+    if (data.isEmpty) return;
+
+    final double shortAlpha = 2 / (shortPeriod + 1);
+    final double longAlpha = 2 / (longPeriod + 1);
+    final double smoothAlpha = 2 / (smooth + 1);
+
+    double? emaShort;
+    double? emaLong;
+    final List<double?> macdSeries = List<double?>.filled(data.length, null);
+    for (int i = 0; i < data.length; i++) {
+      final close = data[i].close;
+      emaShort =
+          emaShort == null ? close : emaShort + shortAlpha * (close - emaShort);
+      emaLong =
+          emaLong == null ? close : emaLong + longAlpha * (close - emaLong);
+      macdSeries[i] = emaShort - emaLong;
+    }
+
+    double? smoothStage1;
+    double? smoothStage2;
+    for (int i = 0; i < data.length; i++) {
+      final double? macd = macdSeries[i];
+      if (macd == null || macd.isNaN) {
+        data[i].stc = null;
+        continue;
+      }
+      if (i < cycle - 1) {
+        data[i].stc = null;
+        continue;
+      }
+
+      double highest = -double.infinity;
+      double lowest = double.infinity;
+      for (int j = i - cycle + 1; j <= i; j++) {
+        final val = macdSeries[j];
+        if (val == null) continue;
+        if (val > highest) highest = val;
+        if (val < lowest) lowest = val;
+      }
+      if (!highest.isFinite ||
+          !lowest.isFinite ||
+          (highest - lowest).abs() < 1e-12) {
+        data[i].stc = null;
+        continue;
+      }
+
+      final double k = ((macd - lowest) / (highest - lowest)) * 100.0;
+      smoothStage1 = smoothStage1 == null
+          ? k
+          : smoothStage1 + smoothAlpha * (k - smoothStage1);
+      smoothStage2 = smoothStage2 == null
+          ? smoothStage1
+          : smoothStage2 + smoothAlpha * (smoothStage1 - smoothStage2);
+
+      data[i].stc = smoothStage2;
+    }
+  }
+
+  static void _computeQqe(List<KLineEntity> data, {int smoothing = 5}) {
+    if (data.isEmpty) return;
+
+    final double alpha = 2 / (smoothing + 1);
+    double? ema1;
+    double? ema2;
+    double? signal;
+    for (final entity in data) {
+      final double? rsi = entity.rsi;
+      if (rsi == null || rsi.isNaN) {
+        entity.qqe = null;
+        entity.qqeSignal = null;
+        continue;
+      }
+      ema1 = ema1 == null ? rsi : ema1 + alpha * (rsi - ema1);
+      ema2 = ema2 == null ? ema1 : ema2 + alpha * (ema1 - ema2);
+      signal = signal == null ? ema2 : signal + alpha * (ema2 - signal);
+      entity.qqe = ema2;
+      entity.qqeSignal = signal;
+    }
+  }
+
+  static void _computeWaveTrend(List<KLineEntity> data,
+      {int n1 = 10, int n2 = 21}) {
+    if (data.isEmpty) return;
+
+    final double alphaN1 = 2 / (n1 + 1);
+    final double alphaN2 = 2 / (n2 + 1);
+    double esa = 0.0;
+    double dema = 0.0;
+    double ciEma = 0.0;
+    double wt2 = 0.0;
+    bool hasEsa = false;
+    bool hasDema = false;
+    bool hasCiEma = false;
+    bool hasWt2 = false;
+    for (final entity in data) {
+      final double ap = (entity.high + entity.low + entity.close) / 3.0;
+      if (!hasEsa) {
+        esa = ap;
+        hasEsa = true;
+      } else {
+        esa = esa + alphaN1 * (ap - esa);
+      }
+      final double deviation = (ap - esa).abs();
+
+      if (!hasDema) {
+        dema = deviation;
+        hasDema = true;
+      } else {
+        dema = dema + alphaN1 * (deviation - dema);
+      }
+      final double divisor = dema.abs() < 1e-12 ? 1e-12 : dema;
+
+      final double ci = (ap - esa) / (0.015 * divisor);
+      if (!hasCiEma) {
+        ciEma = ci;
+        hasCiEma = true;
+      } else {
+        ciEma = ciEma + alphaN2 * (ci - ciEma);
+      }
+
+      if (!hasWt2) {
+        wt2 = ciEma;
+        hasWt2 = true;
+      } else {
+        wt2 = wt2 + alphaN2 * (ciEma - wt2);
+      }
+
+      entity.waveTrend1 = ciEma;
+      entity.waveTrend2 = wt2;
+    }
+  }
+
+  static void _computeCmo(List<KLineEntity> data, {int period = 14}) {
+    if (data.length < 2) {
+      for (final entity in data) {
+        entity.cmo = null;
+      }
+      return;
+    }
+
+    final List<double> gains = List<double>.filled(period, 0.0);
+    final List<double> losses = List<double>.filled(period, 0.0);
+    double gainSum = 0.0;
+    double lossSum = 0.0;
+    int index = 0;
+
+    data[0].cmo = null;
+    for (int i = 1; i < data.length; i++) {
+      final double change = data[i].close - data[i - 1].close;
+      final double gain = change > 0 ? change : 0.0;
+      final double loss = change < 0 ? -change : 0.0;
+
+      gainSum += gain - gains[index];
+      lossSum += loss - losses[index];
+      gains[index] = gain;
+      losses[index] = loss;
+      index = (index + 1) % period;
+
+      if (i >= period) {
+        final double denominator = gainSum + lossSum;
+        final double value = denominator.abs() < 1e-12
+            ? 0.0
+            : 100.0 * ((gainSum - lossSum) / denominator);
+        data[i].cmo = value;
+      } else {
+        data[i].cmo = null;
+      }
+    }
+  }
+
+  static void _computeEom(List<KLineEntity> data,
+      {double volumeScale = 1000000}) {
+    if (data.length < 2) {
+      for (final entity in data) {
+        entity.eom = null;
+      }
+      return;
+    }
+
+    data[0].eom = null;
+    for (int i = 1; i < data.length; i++) {
+      final current = data[i];
+      final prev = data[i - 1];
+      final double dm =
+          (current.high + current.low) / 2.0 - (prev.high + prev.low) / 2.0;
+      final double range = current.high - current.low;
+      if (range.abs() < 1e-12) {
+        current.eom = null;
+        continue;
+      }
+      final double rangeAbs = range.abs();
+      final double denom = rangeAbs < 1e-12 ? 1e-12 : rangeAbs;
+      final double boxRatio = (current.vol / volumeScale) / denom;
+      if (boxRatio.abs() < 1e-12) {
+        current.eom = null;
+        continue;
+      }
+      current.eom = dm / boxRatio;
+    }
+  }
+
+  static void _computePviNvi(List<KLineEntity> data) {
+    if (data.isEmpty) return;
+
+    double pvi = 1000.0;
+    double nvi = 1000.0;
+    data[0].pvi = pvi;
+    data[0].nvi = nvi;
+
+    for (int i = 1; i < data.length; i++) {
+      final prev = data[i - 1];
+      final current = data[i];
+      final double changePct = prev.close.abs() < 1e-12
+          ? 0.0
+          : (current.close - prev.close) / prev.close;
+
+      if (current.vol >= prev.vol) {
+        pvi = pvi * (1 + changePct);
+      }
+      if (current.vol <= prev.vol) {
+        nvi = nvi * (1 + changePct);
+      }
+
+      current.pvi = pvi;
+      current.nvi = nvi;
     }
   }
 

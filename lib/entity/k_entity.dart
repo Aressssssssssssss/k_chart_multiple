@@ -52,6 +52,13 @@ import 'vortex_entity.dart';
 import 'vpt_entity.dart';
 import 'vwap_entiry.dart';
 import 'wpr_entity.dart';
+import 'supertrend_entity.dart';
+import 'stc_entity.dart';
+import 'qqe_entity.dart';
+import 'wave_trend_entity.dart';
+import 'cmo_entity.dart';
+import 'eom_entity.dart';
+import 'pvi_nvi_entity.dart';
 
 class KEntity
     with
@@ -108,4 +115,11 @@ class KEntity
         ElderRayEntity,
         IchimokuExtraEntity,
         PivotEntity,
-        GannFanEntity {}
+        GannFanEntity,
+        SuperTrendEntity,
+        StcEntity,
+        QqeEntity,
+        WaveTrendEntity,
+        CmoEntity,
+        EomEntity,
+        PviNviEntity {}

@@ -22,10 +22,34 @@ class UpProbReport {
     }
     return true;
   }
+
+  @override
+  String toString() {
+    final buffer = StringBuffer()
+      ..write('UpProbReport(')
+      ..write('index: $index, ')
+      ..write('time: ${time ?? '-'}, ')
+      ..write('mainUp: ${_formatProb(mainUp)}, ')
+      ..write('secondaryUps: {');
+
+    final entries = secondaryUps.entries
+        .map((e) =>
+            '${e.key.toString().split('.').last}: ${_formatProb(e.value)}')
+        .join(', ');
+    buffer
+      ..write(entries)
+      ..write('})');
+    return buffer.toString();
+  }
 }
 
 bool _almostEq(double? a, double? b, double eps) {
   if (a == null && b == null) return true;
   if (a == null || b == null) return false;
   return (a - b).abs() <= eps;
+}
+
+String _formatProb(double? value) {
+  if (value == null) return '—';
+  return '${(value * 100).toStringAsFixed(2)}%';
 }

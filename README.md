@@ -181,6 +181,13 @@ class MultipleCharts extends StatelessWidget {
 - **ICHIMOKU_SPAN Δ**：SpanA-SpanB 差值，刻画云层厚度与趋势强弱。
 - **PIVOT**：传统枢轴点与多级支撑阻力，适合日内框架。
 - **GANN_FAN**：归一化的江恩扇形比例线，辅助角度和时间分析。
+- **SUPER_TREND**：基于 ATR 的趋势跟随通道，自动在涨跌之间切换，主线颜色随方向变换，可用于拖尾止损或趋势确认。
+- **STC（Schaff Trend Cycle）**：MACD 与随机振荡结合的双重平滑周期指标，兼顾趋势与循环节奏，能更快抓取行情转折。
+- **QQE（Quantitative Qualitative Estimation）**：对 RSI 做两次 EMA 平滑并生成讯号线，过滤短期噪声，适合震荡区间的超买超卖判断。
+- **WAVE_TREND**：对典型价格作多层平滑后的波动趋势振荡器，默认输出双线交叉，常用于加密/高波动资产的顶部与底部识别。
+- **CMO（Chande Momentum Oscillator）**：比较一定周期内的上涨/下跌幅度差异，提供更敏捷的动量读数，适合观察趋势动能变化。
+- **EOM（Ease of Movement）**：结合价差与量能的轻松度指标，衡量价格上行或下行时所需的“成本”，对强迫放量的趋势很敏感。
+- **PVI/NVI**：正/负量指标，追踪成交量放大或缩小时的价格合成路径，用于分辨主导性量能变化，常与资金流向类指标联动。
 
 ## 交易标记与概率回调
 - 使用 `TradeMark` 将策略事件渲染在主图上：

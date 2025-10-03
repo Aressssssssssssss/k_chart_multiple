@@ -123,6 +123,13 @@ class MyHomePageState extends State<MyHomePage> {
     SecondaryState.ICHIMOKU_SPAN,
     SecondaryState.PIVOT,
     SecondaryState.GANN_FAN,
+    SecondaryState.SUPER_TREND,
+    SecondaryState.STC,
+    SecondaryState.QQE,
+    SecondaryState.WAVE_TREND,
+    SecondaryState.CMO,
+    SecondaryState.EOM,
+    SecondaryState.PVI_NVI,
   ];
 
   static const Map<SecondaryState, Map<String, String>>
@@ -218,6 +225,34 @@ class MyHomePageState extends State<MyHomePage> {
     SecondaryState.GANN_FAN: {
       'en': 'Gann Fan',
       'zh': '江恩扇形',
+    },
+    SecondaryState.SUPER_TREND: {
+      'en': 'SuperTrend',
+      'zh': '超级趋势',
+    },
+    SecondaryState.STC: {
+      'en': 'Schaff Trend Cycle',
+      'zh': 'STC 指标',
+    },
+    SecondaryState.QQE: {
+      'en': 'QQE',
+      'zh': 'QQE 指标',
+    },
+    SecondaryState.WAVE_TREND: {
+      'en': 'WaveTrend Oscillator',
+      'zh': '波动趋势',
+    },
+    SecondaryState.CMO: {
+      'en': 'Chande Momentum Osc.',
+      'zh': '钱德动量',
+    },
+    SecondaryState.EOM: {
+      'en': 'Ease of Movement',
+      'zh': '简易波动',
+    },
+    SecondaryState.PVI_NVI: {
+      'en': 'PVI & NVI',
+      'zh': '正/负量指标',
     },
   };
 

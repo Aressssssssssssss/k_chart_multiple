@@ -356,6 +356,60 @@ abstract class BaseChartPainter extends CustomPainter {
             if (a > newMax) newMax = a;
             if (a < newMin) newMin = a;
           }
+        } else if (st == SecondaryState.SUPER_TREND) {
+          final List<double?> vals = [
+            item.superTrend,
+            item.superTrendUpper,
+            item.superTrendLower,
+          ];
+          for (final v in vals) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
+        } else if (st == SecondaryState.STC) {
+          final double? val = item.stc;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.QQE) {
+          final List<double?> vals = [item.qqe, item.qqeSignal];
+          for (final v in vals) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
+        } else if (st == SecondaryState.WAVE_TREND) {
+          final List<double?> vals = [item.waveTrend1, item.waveTrend2];
+          for (final v in vals) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
+        } else if (st == SecondaryState.CMO) {
+          final double? val = item.cmo;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.EOM) {
+          final double? val = item.eom;
+          if (val != null && val.isFinite) {
+            if (val > newMax) newMax = val;
+            if (val < newMin) newMin = val;
+          }
+        } else if (st == SecondaryState.PVI_NVI) {
+          final List<double?> vals = [item.pvi, item.nvi];
+          for (final v in vals) {
+            if (v != null && v.isFinite) {
+              if (v > newMax) newMax = v;
+              if (v < newMin) newMin = v;
+            }
+          }
         } else if (st == SecondaryState.VORTEX) {
           // item.viPlus, item.viMinus
           double? viplus = item.viPlus;

@@ -1,0 +1,3 @@
+mixin StcEntity {
+  double? stc;
+}

@@ -182,6 +182,19 @@ class ChartColors {
   Color gann1x1Color = Colors.orangeAccent;
   Color gann1x2Color = Colors.cyanAccent;
   Color gann2x1Color = Colors.purpleAccent;
+  Color superTrendUpColor = Colors.lightGreenAccent;
+  Color superTrendDownColor = Colors.pinkAccent;
+  Color superTrendUpperColor = Colors.greenAccent.withValues(alpha: 0.6);
+  Color superTrendLowerColor = Colors.redAccent.withValues(alpha: 0.6);
+  Color stcColor = Colors.deepOrangeAccent;
+  Color qqeColor = Colors.cyanAccent;
+  Color qqeSignalColor = Colors.deepPurpleAccent;
+  Color waveTrend1Color = Colors.lightBlueAccent;
+  Color waveTrend2Color = Colors.orangeAccent;
+  Color cmoColor = Colors.amberAccent;
+  Color eomColor = Colors.blueGrey;
+  Color pviColor = Colors.greenAccent;
+  Color nviColor = Colors.redAccent;
 }
 
 class ChartStyle {
