@@ -1,28 +1,39 @@
 # k_chart_multiple
 
-Flutter K 线图组件，支持在单个界面中实例化多个行情图，并提供完整的指标体系、交易标记与回调能力，帮助你快速构建专业的行情/量化分析页面。
+A production-ready Flutter candlestick charting library. Render multiple market charts on the same screen, combine dozens of indicators, and wire the output into trading overlays, callbacks, and custom UI.
 
-## 功能亮点
-- 同屏管理多个 `KChartWidget`，支持自定义宽高和滚动行为
-- 内置主图指标（MA/BOLL）与 20+ 个副图指标，可通过 `List<SecondaryState>` 自由组合
-- 支持蜡烛图、分时线、趋势线绘制以及成交量、深度图
-- 提供 `ChartStyle`/`ChartColors`、多语言、时间格式等多维度外观配置
-- 额外的概率评估、交易标记 (`TradeMark`) 与信号回调，便于量化策略联动
-- 自带示例项目与本地数据，开箱即可运行
+## Preview
 
-## 快速开始
-1. **添加依赖**
+![Main chart with overlays](example/images/screenshot1.png)
+![Indicator combinations](example/images/screenshot2.png)
+![Dark theme layout](example/images/screenshot3.png)
+![Depth & volume view](example/images/screenshot4.png)
+![Side-by-side panels](example/images/screenshot5.png)
+![Trend drawing tools](example/images/screenshot6.png)
+![Probability callbacks](example/images/screenshot7.png)
+![Localization sample](example/images/screenshot8.png)
+
+## Feature Highlights
+- Manage multiple `KChartWidget` instances with custom sizing and scroll behavior.
+- Built-in main chart overlays (MA, BOLL) and 50+ secondary indicators via `List<SecondaryState>`.
+- Candlesticks, timeline view, trend-line drawing, market depth, and volume bars out of the box.
+- Fine-grained appearance control with `ChartStyle`, `ChartColors`, localization, and time formatting.
+- Probability engine, trading markers (`TradeMark`), and callbacks for strategy integration.
+- Ships with a fully working example and local data so you can run it immediately.
+
+## Getting Started
+1. **Add the dependency**
    ```yaml
    dependencies:
      k_chart_multiple: ^1.1.0
    ```
 
-2. **导入库**
+2. **Import the package**
    ```dart
    import 'package:k_chart_multiple/flutter_k_chart.dart';
    ```
 
-3. **准备数据**
+3. **Prepare data**
    ```dart
    final raw = await rootBundle.loadString('assets/chatData.json');
    final List<dynamic> list = json.decode(raw)['data'];
@@ -31,10 +42,10 @@ Flutter K 线图组件，支持在单个界面中实例化多个行情图，并�
        .toList()
        .reversed
        .toList();
-   DataUtil.calculate(datas); // 必须：计算均线、指标、概率等
+   DataUtil.calculate(datas); // required: computes MA, indicators, probabilities, etc.
    ```
 
-4. **渲染单个 K 线图**
+4. **Render a single chart**
    ```dart
    final chart = KChartWidget(
      datas,
@@ -53,15 +64,15 @@ Flutter K 线图组件，支持在单个界面中实例化多个行情图，并�
    );
    ```
 
-## 同屏展示多个 K 线图
-`KChartWidget` 是普通的 Flutter 组件，可像其他 Widget 一样放在 `ListView`、`GridView` 或 `TabBarView` 中。下面示例演示如何在同一页面创建多个指标组合：
+## Multiple Charts on One Screen
+`KChartWidget` behaves like any other Flutter widget. Place it inside a `ListView`, `GridView`, or `TabBarView`. The sample below renders several indicator combinations in a grid:
 
 ```dart
 class MultipleCharts extends StatelessWidget {
   final List<List<SecondaryState>> secondaryCombos;
   final List<KLineEntity> source;
 
-  MultipleCharts({
+  const MultipleCharts({
     super.key,
     required this.secondaryCombos,
     required this.source,
@@ -106,91 +117,91 @@ class MultipleCharts extends StatelessWidget {
 }
 ```
 
-提示：
-- 共享同一份 `datas` 时，多个图表会拥有一致的缩放与计算结果；如需独立数据，只需传入不同的 `List<KLineEntity>`。
-- 可结合 `ValueNotifier`/`Provider` 等状态管理方案，控制指标组合、主题或数据刷新。
+Tips:
+- Sharing the same `datas` keeps zoom and computations in sync across widgets; pass separate lists for independent data feeds.
+- Use `ValueNotifier`, Provider, or your state manager of choice to toggle indicators, themes, or refresh data.
 
-## 常用配置总览
-- **主图模式**：`mainState` 支持 `MainState.MA`、`MainState.BOLL`、`MainState.NONE`
-- **副图指标**：`SecondaryState` 提供 MACD、KDJ、RSI、SAR、ATR、VWAP、等 20+ 指标；将需要的指标放入 `List` 即可一次展示多个副图
-- **线图模式**：`isLine = true` 切换为分时折线；`isTrendLine = true` 开启趋势线绘制
-- **成交量/栅格**：通过 `volHidden`、`hideGrid` 控制是否显示
-- **外观**：调整 `ChartStyle`（点宽、间距、网格、内边距）与 `ChartColors`（K 线多空颜色、指标颜色、背景等）
-- **布局高度**：`mainHeight`、`secondaryHeight` 控制主副图区域；未设置时自动按比例分配
-- **国际化与时间**：`translations` 设置信息窗文案，`timeFormat` 控制底部时间格式，示例内置 `kChartTranslations`
-- **加载与交互**：
-  - `onLoadMore(bool isRightEdge)`：滑动至边缘时触发，适合懒加载
-  - `isOnDrag`、`onSecondaryTap`：监听拖拽状态与副图区点击
-  - `isTapShowInfoDialog`、`showInfoDialog`、`materialInfoDialog` 控制信息窗行为
+## Configuration Overview
+- **Main chart modes**: `MainState.MA`, `MainState.BOLL`, `MainState.NONE`.
+- **Secondary indicators**: combine any entries from `SecondaryState` to render multiple panes.
+- **Line mode**: `isLine = true` switches to timeline; `isTrendLine = true` enables drawing tools.
+- **Volume & grid**: toggle with `volHidden` and `hideGrid`.
+- **Appearance**: adjust point width, spacing, padding (`ChartStyle`) and all colors (`ChartColors`).
+- **Layout**: control heights via `mainHeight` and `secondaryHeight` or let the widget auto-balance.
+- **Localization & time**: provide `translations` and choose a `timeFormat`; default maps include English and Chinese out of the box.
+- **Interactions & loading**:
+  - `onLoadMore(bool isRightEdge)` triggers when the view hits either edge.
+  - `isOnDrag`, `onSecondaryTap` report drag state and secondary chart taps.
+  - `isTapShowInfoDialog`, `showInfoDialog`, `materialInfoDialog` control the info window behavior.
 
-## 指标一览与说明
-### 主图指标
-- **MA（Moving Average）**：多周期移动平均线，用于平滑价格、观测趋势方向。
-- **BOLL（Bollinger Bands）**：标准差通道，通过上下轨道衡量价格波动范围，捕捉突破与回归机会。
-- **NONE**：不在主图叠加任何指标，仅显示蜡烛或折线图。
+## Indicator Catalog
+### Main Chart Overlays
+- **MA (Moving Average)**: classic multi-period moving averages to smooth price action.
+- **BOLL (Bollinger Bands)**: middle moving average with upper/lower bands describing volatility.
+- **NONE**: hide all primary overlays.
 
-### 副图指标
-- **MACD（Moving Average Convergence Divergence）**：由 DIF、DEA 与柱状图组成，识别趋势、动能与背离。
-- **KDJ（Stochastic Oscillator）**：通过 %K/%D/%J 反映超买超卖，常用于区间震荡行情。
-- **RSI（Relative Strength Index）**：衡量涨跌动量强度，常用阈值 30/70 判断反转。
-- **WR（Williams %R）**：基于最近区间高低点的动量指标，定位超买/超卖位置。
-- **CCI（Commodity Channel Index）**：检测价格偏离均值程度，辅助震荡与趋势行情的入场判断。
-- **DMI（Directional Movement Index）**：包含 +DI/-DI/ADX/ADXR，衡量趋势方向与强度。
-- **TRIX（三重指数平滑均线）**：去趋势后的动量指标，同时提供信号线确认。
-- **PPO（Percentage Price Oscillator）**：相对型 MACD，消除不同标的价格级别差异。
-- **TSI（True Strength Index）**：双重平滑动量指标，强调趋势内的回调力度。
-- **ICHIMOKU（一目均衡表）**：包含转折/基准/领先/延迟线与云图，提供趋势、支撑阻力与时间窗。
-- **SAR（Parabolic SAR）**：抛物线反转指标，提供潜在止盈/反转位置。
-- **AROON**：上升/下降线与振荡器，测量距离近期极值的时间，判定趋势切换。
-- **VORTEX**：VI+/VI- 强调多空力量的转移。
-- **ATR（Average True Range）**：真实波动区间，衡量绝对波动程度，常用作止损。
-- **HV（Historical Volatility）**：基于对数收益的年化历史波动率。
-- **VWAP（Volume Weighted Average Price）**：成交量加权平均价，衡量日内公平价格。
-- **OBV（On Balance Volume）**：价格与成交量耦合的量能指标，含平滑版本。
-- **ADL（Accumulation/Distribution Line）**：资金流向估计，结合价量判断吸筹派发。
-- **VIX（Local Volatility Proxy）**：基于价格数据的波动率 proxy，辅助衡量市场恐慌程度。
-- **ADX（Average Directional Index）**：DMI 的趋势强度分量，可单独作为副图使用。
-- **STDDEV（Standard Deviation）**：统计型波动衡量，常配合均值策略使用。
-- **STOCHASTIC（Slow Stoch）**：平滑 K/D 线，过滤原始随机指标噪声。
-- **WPR（Williams %R）**：威廉指标的经典实现，聚焦短期反转。
-- **DEMARKER**：比较当前高低点与前期极值，评估潜在枯竭与反转。
-- **MOMENTUM**：简单差分动量，直接衡量价格变化速率。
-- **MFI（Money Flow Index）**：结合价量的 RSI 变体，突出资金流入流出。
-- **ENVELOPES**：移动平均包络线，用上下百分比带追踪趋势。
-- **VOLATILITY（ATR / Close）**：ATR 相对化的波动率指标，衡量波动占比。
-- **CMF（Chaikin Money Flow）**：基于价量的资金流量，评估买盘/卖盘压力。
-- **CHAIKIN_OSC（Chaikin Oscillator）**：ADL 快慢双均线差值，捕捉动量拐点。
-- **KLINGER（Klinger Volume Oscillator）**：对成交量趋势进行 EMA 拟合，并提供信号线。
-- **VPT（Volume Price Trend）**：累积量价趋势，衡量成交量对价格的推动方向。
-- **FORCE（Force Index）**：当日涨跌幅与成交量的乘积，衡量多空能量冲击。
-- **ROC（Rate of Change）**：百分比变动率，再配以信号线平滑。
-- **ULTIMATE（Ultimate Oscillator）**：多周期买力指标，兼顾短、中、长周期动能。
-- **CONNORS_RSI**：价格 RSI、连续涨跌次数与百分位构成的综合动量评分。
-- **STOCH_RSI**：对 RSI 进行二次随机化，适合捕捉 RSI 内部节奏。
-- **RVI（Relative Vigor Index）**：对开高低收做加权，衡量上涨活力并附带信号线。
-- **DPO（Detrended Price Oscillator）**：去除长期趋势的振荡器，突出周期性波动。
-- **KAMA（Kaufman Adaptive MA）**：自适应移动平均，依据效率比动态调整平滑。
-- **HMA（Hull Moving Average）**：加权均线的高阶平滑版本，响应更快。
-- **KELTNER（Keltner Channel）**：EMA 中轨 + ATR 通道，趋势跟随与突破过滤常用。
-- **DONCHIAN（Donchian Channel）**：过去 N 日高低通道，经典海龟策略指标。
-- **BOLL_BANDWIDTH**：布林上下轨宽度相对值，用于识别高/低波动段。
-- **CHAIKIN_VOLATILITY**：基于高低价的波动率变化率，关注波动扩张/收缩。
-- **HV_PERCENTILE**：历史波动率在观察窗口内的百分位，评估当前波动所处区间。
-- **ATR_PERCENTILE**：ATR 在滚动样本内的百分位，更直观地比较绝对波动水平。
-- **ELDER_RAY**：多空力量指标，Bull/Bear Power 与 EMA 结合判断趋势。
-- **ICHIMOKU_SPAN Δ**：SpanA-SpanB 差值，刻画云层厚度与趋势强弱。
-- **PIVOT**：传统枢轴点与多级支撑阻力，适合日内框架。
-- **GANN_FAN**：归一化的江恩扇形比例线，辅助角度和时间分析。
-- **SUPER_TREND**：基于 ATR 的趋势跟随通道，自动在涨跌之间切换，主线颜色随方向变换，可用于拖尾止损或趋势确认。
-- **STC（Schaff Trend Cycle）**：MACD 与随机振荡结合的双重平滑周期指标，兼顾趋势与循环节奏，能更快抓取行情转折。
-- **QQE（Quantitative Qualitative Estimation）**：对 RSI 做两次 EMA 平滑并生成讯号线，过滤短期噪声，适合震荡区间的超买超卖判断。
-- **WAVE_TREND**：对典型价格作多层平滑后的波动趋势振荡器，默认输出双线交叉，常用于加密/高波动资产的顶部与底部识别。
-- **CMO（Chande Momentum Oscillator）**：比较一定周期内的上涨/下跌幅度差异，提供更敏捷的动量读数，适合观察趋势动能变化。
-- **EOM（Ease of Movement）**：结合价差与量能的轻松度指标，衡量价格上行或下行时所需的“成本”，对强迫放量的趋势很敏感。
-- **PVI/NVI**：正/负量指标，追踪成交量放大或缩小时的价格合成路径，用于分辨主导性量能变化，常与资金流向类指标联动。
+### Secondary Indicators
+- **MACD**: EMA difference with histogram, highlighting momentum shifts.
+- **KDJ**: stochastic oscillator variant with fast `%K`, slow `%D`, and `%J` for spike detection.
+- **RSI**: relative strength index, measuring overbought/oversold momentum.
+- **WR (Williams %R)**: short-term reversal oscillator anchored at recent highs/lows.
+- **CCI**: commodity channel index for mean reversion setups.
+- **DMI**: directional movement lines (+DI/-DI) for trend confirmation.
+- **TRIX**: triple-smoothed EMA to emphasize long-term momentum turns.
+- **PPO**: percentage price oscillator, a normalized MACD variant.
+- **TSI**: true strength index, smoothing momentum with double EMA.
+- **ICHIMOKU**: five-line cloud with shaded spans for support/resistance and trend direction.
+- **SAR**: parabolic stop-and-reverse, useful for trailing stops.
+- **AROON**: up/down oscillators and optional Aroon oscillator to gauge trend maturity.
+- **VORTEX**: +VI/-VI tracks actionable directional impulses.
+- **ATR**: average true range for absolute volatility.
+- **HV**: historical volatility based on log returns.
+- **VWAP**: volume-weighted average price, often used as an intraday benchmark.
+- **OBV**: on-balance volume with optional EMA smoothing.
+- **ADL**: accumulation/distribution line approximating money flow.
+- **VIX**: local volatility proxy derived from price data.
+- **ADX**: strength component of DMI; higher values imply strong trends.
+- **STDDEV**: rolling standard deviation to quantify price dispersion.
+- **STOCHASTIC**: smoothed stochastic oscillator for range-bound trading.
+- **WPR**: classic Williams %R implementation for quick reversals.
+- **DEMARKER**: compares highs/lows to measure exhaustion and reversals.
+- **MOMENTUM**: simple price difference as raw momentum.
+- **MFI**: money flow index combining RSI logic with volume.
+- **ENVELOPES**: fixed-percentage bands around a moving average.
+- **VOLATILITY (ATR / Close)**: ATR normalized by price, convenient for percentage-based measures.
+- **CMF**: Chaikin money flow, assessing buy vs sell pressure.
+- **CHAIKIN_OSC**: fast/slow EMA of ADL to reveal turning points.
+- **KLINGER**: volume oscillator with signal line to capture long-term trends.
+- **VPT**: volume price trend, cumulative volume adjusted by price change.
+- **FORCE**: Elder's force index, combining price change with volume.
+- **ROC**: rate of change with optional signal line smoothing.
+- **ULTIMATE**: multi-timeframe momentum oscillator blending different windows.
+- **CONNORS_RSI**: composite score using RSI, streak length, and percentile rank.
+- **STOCH_RSI**: stochastic transformation of RSI to expose internal rhythms.
+- **RVI**: relative vigor index with signal line, weighting close vs open.
+- **DPO**: detrended price oscillator to isolate cyclical swings.
+- **KAMA**: Kaufman adaptive moving average adjusting smoothness by efficiency ratio.
+- **HMA**: Hull moving average, fast-reacting yet smooth.
+- **KELTNER**: EMA midline with ATR-based upper/lower channels.
+- **DONCHIAN**: rolling high/low channel used by turtle strategies.
+- **BOLL_BANDWIDTH**: ratio of Bollinger band width to midline, useful for volatility squeezes.
+- **CHAIKIN_VOLATILITY**: change rate of high-low range; highlights volatility expansion/contraction.
+- **HV_PERCENTILE**: places current historical volatility within its rolling percentile.
+- **ATR_PERCENTILE**: percentile ranking of ATR for relative comparison.
+- **ELDER_RAY**: bull/bear power plotted against EMA for trend validation.
+- **ICHIMOKU_SPAN Δ**: difference between Span A and Span B, illustrating cloud thickness.
+- **PIVOT**: classic pivot points with multi-level support/resistance bands.
+- **GANN_FAN**: normalized Gann fan ratios for angle/time analysis.
+- **SUPER_TREND**: ATR-driven trailing channel that changes color with trend direction.
+- **STC (Schaff Trend Cycle)**: MACD and stochastic hybrid with faster turn detection.
+- **QQE (Quantitative Qualitative Estimation)**: double-smoothed RSI plus signal line for cleaner entries.
+- **WAVE_TREND**: multi-smoothed typical price oscillator, popular in crypto for top/bottom spotting.
+- **CMO (Chande Momentum Oscillator)**: compares aggregated gains vs losses for agile momentum readings.
+- **EOM (Ease of Movement)**: blends price range with volume to show how easily price travels.
+- **PVI/NVI**: positive/negative volume indexes that follow price when volume expands or contracts.
 
-## 交易标记与概率回调
-- 使用 `TradeMark` 将策略事件渲染在主图上：
+## Trading Marks & Probability Callbacks
+- Use `TradeMark` to annotate strategy events on the main chart:
   ```dart
   final trades = [
     TradeMark(index: 50, price: 26800, side: TradeSide.long, action: TradeAction.entry, label: 'Entry'),
@@ -209,26 +220,26 @@ class MultipleCharts extends StatelessWidget {
     onUpProbs: (report) => debugPrint(report.toString()),
   );
   ```
-- `DataUtil.calculate` 会在 `KLineEntity.probability` 中写入综合概率，同时驱动 `onGoingUp` / `onGoingDown` / `onUpProbs` 等回调，便于与信号提供器或交易逻辑联动。
+- `DataUtil.calculate` writes composite probabilities into `KLineEntity.probability` and feeds the `onGoingUp` / `onGoingDown` / `onUpProbs` callbacks so you can bridge to your strategy engine.
 
-## 与信号提供器联动
-`lib/provider` 目录包含针对各类指标的信号计算器（如 `macd_signal_provider.dart`、`sar_signal_provider.dart` 等）。你可以：
-1. 结合自己的行情源更新 `KLineEntity`
-2. 调用对应的 Provider 计算买卖点/信号
-3. 配合 `TradeMark` 或自定义 UI 进行提醒
+## Working with Signal Providers
+The `lib/provider` directory contains indicator-aware signal calculators (for example `macd_signal_provider.dart`, `sar_signal_provider.dart`). Typical workflow:
+1. Update `KLineEntity` with your market feed.
+2. Call the relevant provider to compute buy/sell points or alerts.
+3. Render the outcome with `TradeMark` or a custom overlay.
 
-## 示例项目
-- `example/lib/main.dart` 展示了完整的页面搭建、按钮控制指标、趋势线模式切换、深度图等能力。
-- 运行示例：
+## Example App
+- `example/lib/main.dart` showcases full UI composition, indicator toggles, drawing tools, and the depth chart.
+- Run the sample:
   ```bash
   flutter pub get
   cd example
   flutter run
   ```
 
-## 常见问题
-- **画面没有指标数据**：确认在渲染前调用 `DataUtil.calculate(list)`。
-- **时间轴不正确**：`KLineEntity.time` 以毫秒时间戳为准，若只获取秒级需要自行乘以 1000。
-- **需要更多语言**：扩展 `translations`，或提供自定义 `ChartTranslations` 实例。
+## FAQ
+- **Why are indicators empty?** Ensure `DataUtil.calculate(list)` is called before rendering.
+- **Time axis is wrong.** `KLineEntity.time` expects a millisecond timestamp. Convert seconds to milliseconds if needed.
+- **Need more locales?** Extend `translations` or supply your own `ChartTranslations` implementation.
 
-欢迎提交 Issue 或 Pull Request 升级指标与样式配置。
+Contributions are welcome—issues and PRs help grow the indicator set and customization options.

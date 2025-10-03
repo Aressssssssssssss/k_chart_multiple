@@ -22,3 +22,7 @@ added support secondary chart: Chaikin Money Flow, Chaikin Oscillator, Klinger V
 ## [1.4.0]
 
 added support secondary chart: SuperTrend, Schaff Trend Cycle, QQE, WaveTrend Oscillator, Chande Momentum Osc, Ease of Movement, PVI&NVI
+
+## [1.4.1]
+
+added screenshot to readme.md
