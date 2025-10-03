@@ -4,14 +4,18 @@ A production-ready Flutter candlestick charting library. Render multiple market 
 
 ## Preview
 
-![Main chart with overlays](example/images/screenshot1.png)
-![Indicator combinations](example/images/screenshot2.png)
-![Dark theme layout](example/images/screenshot3.png)
-![Depth & volume view](example/images/screenshot4.png)
-![Side-by-side panels](example/images/screenshot5.png)
-![Trend drawing tools](example/images/screenshot6.png)
-![Probability callbacks](example/images/screenshot7.png)
-![Localization sample](example/images/screenshot8.png)
+<p align="center">
+  <img src="example/images/screenshot1.png" alt="Main chart with overlays" width="24%"/>
+  <img src="example/images/screenshot2.png" alt="Indicator combinations" width="24%"/>
+  <img src="example/images/screenshot3.png" alt="Dark theme layout" width="24%"/>
+  <img src="example/images/screenshot4.png" alt="Depth &amp; volume view" width="24%"/>
+</p>
+<p align="center">
+  <img src="example/images/screenshot5.png" alt="Side-by-side panels" width="24%"/>
+  <img src="example/images/screenshot6.png" alt="Trend drawing tools" width="24%"/>
+  <img src="example/images/screenshot7.png" alt="Probability callbacks" width="24%"/>
+  <img src="example/images/screenshot8.png" alt="Localization sample" width="24%"/>
+</p>
 
 ## Feature Highlights
 - Manage multiple `KChartWidget` instances with custom sizing and scroll behavior.
